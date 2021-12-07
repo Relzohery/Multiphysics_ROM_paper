@@ -9,6 +9,16 @@
 %\usepackage[doublespacing]{setspace}% To produce a `double spaced' document if required
 %\setlength\parindent{24pt}% To increase paragraph indentation when line spacing is doubled
 
+\usepackage{algorithm,algorithmic}
+\usepackage{hyperref}
+\usepackage{mathtools}
+\usepackage{amssymb}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{tikz}
+\usepackage{multirow}
+\usepackage{booktabs,tabularx}
+
 \usepackage[numbers,sort&compress]{natbib}% Citation support using natbib.sty
 \bibpunct[, ]{[}{]}{,}{n}{,}{,}% Citation support using natbib.sty
 \renewcommand\bibfont{\fontsize{10}{12}\selectfont}% Bibliography support using natbib.sty
@@ -74,6 +84,179 @@ Manuscripts for possible publication should be submitted to the Editors for revi
 
 Please ensure that any author-defined macros used in your article are gathered together in the preamble of your .tex file, i.e.\ before the \verb"\begin{document}" command. Note that if serious problems are encountered in the coding of a document (missing author-defined macros, for example), the typesetter may resort to rekeying it.
 
+
+\section{Benchmark Desription}
+The LRA benchmark employs two energy groups and two delayed precursors and represents a 2-D quarter-core, BWR model subject to a control-rod ejection with adiabatic heating \cite{anl}.
+Schematic layout of the problem is shown in Fig.~\ref{fig:lra core}, where region numbers indicate different materials and region R is the ejected rod.
+%To produce time-dependent snapshots, the deterministic transport code Detran\footnote{https://github.com/robertsj/libdetran} was used to solve the time-dependent diffusion equations.
+\begin{figure}[h!]
+	\centering
+	\begin{tikzpicture}[scale=0.6]	
+	\begin{scope}<->;
+	
+	% GRID
+	\draw[step=1.5cm,gray,very thin, dashed,opacity=0.4] (0, 0) grid (16.5,16.5);
+	
+	% AXES
+	\draw[black, thick, ->] (0, 0) -- (17,  0) node[right] {$x$ (cm)};
+	\draw[black, thick, ->] (0, 0) -- ( 0, 17) node[above] {$y$ (cm)};
+	
+	% Material 1 regions 
+	
+	\node[font=\large] at (5.25, 5.25) {1};
+	
+	% Material 2 regions
+	\draw[black, thick] (0, 1.5) -- (1.5, 1.5);
+	\draw[black, thick] (1.5, 0) -- (1.5, 1.5);
+	\node[font=\large] at (0.75, 0.75) {2};
+	
+	\draw[black, thick] ( 7.5, 0.0) -- ( 7.5, 1.5);
+	\draw[black, thick] (10.5, 0.0) -- (10.5, 1.5);
+	\draw[black, thick] ( 7.5, 1.5) -- (10.5, 1.5);
+	\node[font=\large] at (9.0, 0.75) {2};
+	
+	\draw[black, thick] ( 0.0,  7.5) -- ( 1.5,  7.5);
+	\draw[black, thick] ( 0.0, 10.5) -- ( 1.5, 10.5);
+	\draw[black, thick] ( 1.5,  7.5) -- ( 1.5, 10.5);
+	\node[font=\large] at ( 0.75, 9.0) {2};
+	
+	\draw[black, thick] ( 7.5,  7.5) -- ( 7.5, 10.5);
+	\draw[black, thick] ( 7.5,  7.5) -- (10.5,  7.5);
+	\draw[black, thick] (10.5, 10.5) -- ( 7.5, 10.5);
+	\draw[black, thick] (10.5, 10.5) -- (10.5,  7.5);
+	\node[font=\large] at ( 9.0, 9.0) {2};
+	
+	% Material 3 regions
+	\draw[black, thick] (10.5,  0.0) -- (10.5, 10.5) -- (13.5, 10.5) --  (13.5,  0.0) -- (10.5,  0.0);
+	\node[font=\large] at ( 12.0, 3.75) {3}; 
+	\draw[black, thick] (0.0, 10.5) -- (10.5, 10.5) -- (10.5, 13.5) -- (0.0, 13.5) --  (0.0, 10.5);
+	\node[font=\large] at ( 3.75, 12.0) {3}; 
+	
+	% Material 4 regions  
+	\draw[black, thick] ( 12,  12) -- ( 12, 10.5) -- (10.5, 10.5) -- (10.5,  12) -- ( 12,  12);
+	\node[font=\large] at ( 11.25,11.25) {4};
+	
+	
+	% Material 5 regions
+	\draw[black, thick] ( 16.5,  0.0) -- (16.5, 16.5);
+	\draw[black, thick] (  0.0, 16.5) -- (16.5, 16.5);
+	\node[font=\large] at (15.0, 15.0) {5};
+	
+	% Perturbed regions
+	\def\eps{0.125}
+	\draw[black, thick, dashed] (10.5+\eps, 7.5+\eps) -- (10.5+\eps, 10.5-\eps) -- (13.5-\eps, 10.5-\eps) -- (13.5-\eps, 7.5+\eps) --  (10.5+\eps, 7.5+\eps);
+	
+	\node[font=\large] at (12,9) {R};
+	
+	% ticks
+	\foreach \x/\xtext in {15, 75, 105, 135, 165}
+	\draw[black,xshift=0.1*\x cm] (0,.3) -- (0,0) node[below, font=\large] {$\xtext$};
+	\foreach \y/\ytext in {15, 75, 105, 135, 165}
+	\draw[black,yshift=0.1*\y cm] (.3,0) -- (0,0) node[left, font=\large] {$\ytext$};
+	\end{scope}
+	\end{tikzpicture}
+	\caption{Schematic of LRA benchmark.}
+	\label{fig:lra core}
+\end{figure}
+The transient is initiated by a control rod ejection with constant velocity over a period of 2 seconds leading to a super-critical prompt transient, in which the power increased by about 10 orders of magnitude in a very short time.
+The control rod movement was simulated by changing the thermal absorption cross section of the control rod material.
+\begin{equation}
+\sigma 
+\end{equation}
+
+Thermal feedback is incorporated through adiabatic fuel heat-up defined by
+\begin{equation}
+\frac{\partial}{\partial t}T(x,t) = \alpha[\Sigma_{f1}(x,t)\phi_1(x,t)+\Sigma_{f2}(x,t)\phi_2(x,t)] \, ,
+\label{eq:heatup}
+\end{equation}
+and corresponding Doppler feedback defined by
+\begin{equation}
+\Sigma_{a1}(x,t) = \Sigma_{a1}(x,t=0)[1+\gamma(\sqrt{(T(x,t)}-\sqrt{(T_0)})] \, ,
+\label{eq:doppler}
+\end{equation}
+where $\Sigma_{f_i}$ is the fission cross section of group $i$, $T$ is the temperature,  $\Sigma_{a1}$ is the fast absorption cross section and  $T_0$ is the initial temperature which is $300 $ K,
+$\alpha = 3.83\times 10^{-11}~\text{K}.\text{cm}^3$ and $\gamma = 3.034\times 10^{-3} ~\text{K}^{-0.5}$.\\
+The power is computed as
+\begin{equation}
+P(x,t)=\kappa [\Sigma_{f1}(x,t)\phi_1(x,t)+\Sigma_{f2}(x,t)\phi_2(x,t)] \, ,
+\end{equation}
+where $\kappa = 3.204\times 10^{-11}~ \text{Ws/fission}$.
+The model was implemented in the deterministic transport code Detran~\cite{roberts2014advanced}.  
+A mesh-centered, finite-volume discretization was used for the spatial dicretization, while a first-order, backward-difference temporal discretization was used with a fixed 0.001 s step size.  
+The initial condition for the transient was computed by solving the steady-state equation, for which the $k_{\text{eff}}$ was found to be 0.9975.
+Note that at each time step the fast absorption cross section is a function of the solution itself, hence a fixed point non-linear iteration is employed.
+A convergence criteria is used such that the $\text{L}_2$ norm  of the relative flux error between two consecutive iterations is less than $1\times 10^{-6}$,
+
+\begin{equation}
+\|\frac{\mathbf{\Phi}^{i+1} - \mathbf{\Phi}^{i}} {\mathbf{\Phi}^i}\| \le  1\times 10^{-6} \, , 
+\end{equation}
+where the superscript $i$ denotes the iteration number.
+The transient was calculated for 3.0 seconds.
+Figure~\ref{fig:lra fom power} shows the reference full-order model power along with the core average temperature, while Figure \ref{fig:lra ss flux} shows the steady state group flux distribution.
+This reference solution is not numerically converged in either the space or the time but it represents the simulation response that one wish to approximate.
+\begin{figure}[h!]
+	\includegraphics[width=1.0\linewidth]{../figures/LRA_fom_power_temperature.pdf}
+	\caption{LRA core power}
+	\label{fig:lra fom power}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\begin{subfigure}[b]{0.7\textwidth}
+		\includegraphics[width=1.0\linewidth]{../figures/ss_fom_fast_flux_image.pdf}
+		\caption{Steady state fast flux.}
+		\label{fig:ss fast flux}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.7\textwidth}
+		\includegraphics[width=1.0\linewidth]{../figures/ss_fom_thermal_flux_image.pdf}
+		\caption{Steady state thermal flux.}
+		\label{fig:ss thermal flux}
+	\end{subfigure}
+	\caption{Steady state group flux $(\text{neutrons}.\text{cm}^2/s)$}
+	\label{fig:lra ss flux}
+\end{figure}
+
+
+\begin{table}[h!]
+	\centering
+	\begin{tabular}{l|l|l|l| l|l}
+		material & group  & $D$ (cm) & $\Sigma_{a} ~ (\text{cm}^{-1})$ & $\Sigma_{s2\gets 1}~ (\text{cm}^{-1})$ & $\nu\Sigma_{f}~ (\text{cm}^{-1})$ \\\hline
+		\multirow{2}{*}{1}& 1   & 1.255  &  0.008252   &  \multirow{2}{*}{0.02533} & 0.004602 \\	
+		& 2   & 0.211  &  0.1003     &           & 0.1091  \\
+		\hline
+		
+		\multirow{2}{*}{2}& 1   & 1.268  &  0.007181    & \multirow{2}{*}{0.02767} & 0.004609 \\	
+		& 2   & 0.1902 &  0.07047     &           &  0.08675\\
+		\hline
+		
+		\multirow{2}{*}{3}& 1   & 1.259  &  0.008002    & \multirow{2}{*}{0.02617}     & 0.004663 \\	
+		& 2   & 0.2091 &  0.08344     &    &    0.1021 \\
+		\hline
+		\multirow{2}{*}{4}& 1   & 1.259  &  0.008002    & \multirow{2}{*}{0.02617}  &  0.004663 \\	
+		& 2   & 0.2091 &  0.073324    &           &  0.1021   \\
+		\hline
+		\multirow{2}{*}{5}& 1   & 1.257  &  0.0006034   &  \multirow{2}{*}{0.04754}  & 0.0 \\	
+		& 2   & 0.1592 &   0.01911    &        & 0.0 \\
+		\hline
+	\end{tabular}
+	{\raggedright $v_1 = 3\times10^{7} ~\text{cm/sec}. $,  $v_2 = ~3\times10^{5} \text{cm.sec}.$  \par}
+	\caption{Two-group diffusion constants}
+	\label{tab:twogroup}
+\end{table}
+
+
+\begin{table}[h!]
+	\centering
+	\begin{tabular}{c|l|l}
+		group & $\beta_i$  & $\lambda_i$ ($s^{-1}$)  \\
+		\hline
+		1    &  0.0054 & 0.00654 \\
+		2    &  0.001087 & 1.35  \\
+		\hline
+	\end{tabular}
+	\caption{Delayed neutron data.}
+	\label{tab:precursor data}
+\end{table}
 
 \section{Using the \texttt{interact} class file}
 
