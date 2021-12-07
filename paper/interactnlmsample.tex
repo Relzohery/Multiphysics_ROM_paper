@@ -258,6 +258,152 @@ This reference solution is not numerically converged in either the space or the 
 	\label{tab:precursor data}
 \end{table}
 
+
+\section{ROM}
+\subsection{ROM Implementation}
+
+Using the POD-Galerkin projection, a ROM was constructed to approximate the group flux and the core power of the LRA benchmark.
+As discussed in the previous chapter, the time-dependent diffusion equation coupled with the precursors group equation can be cast into a compact form as in Eq.~\ref{eq:transient fom}.
+Similar to the TWIGL benchmark ROM, POD basis set was generated for each group flux while one basis set was generated for both precursors groups, i.e, 
+$\mathbf{\Phi}_1(t) = \mathbf{U}_1\mathbf{a}_1(t)$, $\mathbf{\Phi}(t)_2 = \mathbf{U}_2\mathbf{a}_2(t)$ and $\mathbf{C}(t) = \mathbf{U}_c\mathbf{a}_c(t)$, where the $\mathbf{U}_1$, $\mathbf{U}_2$  and $\mathbf{U}_c$ are the POD bases of the fast group, thermal group and precursor concentration respectively, and $\mathbf{a}_1$, $\mathbf{a}_2$ and $\mathbf{a}_c$ are their respective temporal coefficients. 
+The first 100 normalized singular values \footnote{The normalization is done be dividing each singular value by the sum of all singular values.} of the group flux are shown in Fig.~\ref{fig:lra singular values}.
+\begin{figure}[h!]
+	\includegraphics[width=1.0\linewidth]{figures/LRA/LRA_singular_values.pdf}
+	\caption{flux normalized singular value.}
+	\label{fig:lra singular values}
+\end{figure}
+Since the focus of this application is on treating the non-linearity, rather than trying different ranks of the POD basis, rank 30 was chosen for each group flux and for the precursor concentration.
+Also, the temperature field was approximated by projecting it onto a lower dimensional POD space
+\begin{equation}
+\mathbf{T}(t) = \mathbf{U}_{\text{temp}}\mathbf{a}_T(t) \, ,
+\label{eq:temp pod}
+\end{equation}
+where $\mathbf{U}_{\text{temp}}\in\mathbb{R}^{n \times r_T} $ is the POD subspace of rank $r_T$ and $\mathbf{a}_T\in \mathbb{R}^{r_T}$ is a vector of the corresponding temporal coefficients. 
+To obtain the subspace, snapshots of the temperature were collected at different times for which the SVD was computed.
+Shown in Fig.~\ref{fig:lra T singular values} are the first 100 normalized singular values, based on which a POD of rank $10$ was selected for approximating the temperature.
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=1.0\linewidth]{figures/LRA/LRA_T_singular_values.pdf}
+	\caption{temperature normalized singular value.}
+	\label{fig:lra T singular values}
+\end{figure}
+Inserting Eq.~\ref{eq:temp pod} into Eq.~\ref{eq:heatup} and multiplying on the left by $\mathbf{U}_T^T$ \footnote{The superscript T denotes the matrix transpose.} yields
+\begin{equation}
+\frac{d\mathbf{a}_T(t)}{dt}  = \alpha [\underbrace{\mathbf{U}_{\text{temp}}^T \boldsymbol{\Sigma}_{f1}\mathbf{U}_1}_{\mathbf{U}_{T1}}\mathbf{a_1}(t) + \underbrace{\mathbf{U}_{\text{temp}}^T\boldsymbol{\Sigma}_{f2}\mathbf{U}_2}_{\mathbf{U}_{T2}}\mathbf{a_2}(t)] \, .
+\label{eq:reduced temp}
+\end{equation}
+Note that $\mathbf{U}_{T1}$ and $\mathbf{U}_{T2}$ are time-independent, so they can be precomputed once and stored.
+Thus, at each time step the flux temporal coefficients (i.e, $\mathbf{a_1}(t)$ and $\mathbf{a_2}(t)$) are computed by solving the reduced system and then used to compute the temperature coefficients by employing a first-order, backward-difference scheme to Eq.~\ref{eq:reduced temp}.
+Similar to the full-order model, a fixed point iteration is used to treat the flux non-linearity.
+However, it was observed that the reduced model needed more iterations to converge which could be due to the small value of some of the flux coefficients, hence a convergence criteria was employed based on the relative $\text{L}_2$ norm of the error of flux coefficients between two consecutive iterations 
+\begin{equation}
+\frac{\| \mathbf{a}^{i-1} - \mathbf{a}^{i}\|}{\|\mathbf{a}_i \|} \le 1\times 10^{-6}  \, , 
+\end{equation}
+Note that the fast absorption cross section needs to be updated at each time step using Eq.~\ref{eq:doppler} in which the core temperature distribution is required.
+In order to avoid reconstructing the full order temperature, 
+the DEIM was used to approximate the absorption cross section.
+For this purpose, snapshots of which were collected in order to generate a POD subspace that is used to approximate its space and to find a set of interpolation indices as illustrated in Algorithm~\ref{alg:DEIM}.
+DEIM of order $10$ was used and hence, the cross section was reconstructed at each time step at only 10 points in the spatial space.
+Moreover, since the reactivity insertion was simulated by changing the absorption cross section, the operator $\mathbf{A}$ in Eq.~\ref{Eq:transient rom} exhibits time dependence, 
+The MDEIM was used to decompose the operator and hence avoid performing the expensive projection at each time step.
+Shown in Fig.~\ref{fig:lra L singular values} are the singular values resulting from the SVD of the serialized operator snapshots. 
+Based on the shown plot, a DEIM of order $15$ was used.
+\begin{figure}[H]
+	\includegraphics[width=1.0\linewidth]{figures/LRA/LRA_L_singular_values.pdf}
+	\caption{Operator normalized singular value.}
+	\label{fig:lra L singular values}
+\end{figure}
+
+%------------------------------------------------------------------------%
+\subsection{Results}
+
+\subsubsection{ROM results}
+ROMs were constructed for FOMs models with increasing the spatial fidelity, i.e, spatial grids of $22\times 22$, $44\times44$ and $55 \times 55$.
+For brevity, we show the POD modes with their temporal coefficients of only the $55 \times 55$  grid in Fig.~\ref{fig:lra flux modes}.
+\begin{figure}[H]
+	\centering
+	\begin{subfigure}[b]{0.45\textwidth}
+		\includegraphics[width=1.0\linewidth]{../figures/LRA_fast_modes.pdf}
+		\caption{Fast flux modes.}
+		\label{fig:ss fast flux}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.45\textwidth}
+		\includegraphics[width=1.0\linewidth]{../figures/LRA_thermal_modes.pdf}
+		\caption{Thermal flux modes.}
+		\label{fig:ss thermal flux}
+	\end{subfigure}
+	\caption{Flux POD modes and their temporal coefficient.}
+	\label{fig:lra flux modes}
+\end{figure}
+Using ROMs with the specifications given in the previous section, the absolute relative error in the predicted powers are computed as shown in Fig.~\ref{fig:deim power error}.
+\begin{figure}[H]
+	\includegraphics[width=1.0\linewidth]{../figures/LRA_power_deim_relative_error.pdf}
+	\caption{Relative error of the power predicted by MDEIM ROM}
+	\label{fig:deim power error}
+\end{figure}
+The maximum flux errors for both groups are shown in Table \ref{tab:lra flux errors}.
+
+\begin{table*}[H]
+	\centering
+	\begin{tabular}{c|c|c}  
+		grid &	fast flux  &  thermal flux \\
+		\hline
+		$22\times 22$ &    &  1     \\
+		$44\times 44$ &    &       \\
+		$55\times 55$ &    &       \\
+		\hline
+	\end{tabular}
+	\caption{\bf maximum flux error of the fast and thermal flux (\%)}
+	\label{tab:lra flux errors}
+\end{table*}
+It was interesting to compare the power error with that of a ROM without MDEIM, i.e, with performing the operator projection at each time step.
+The power error is shown in Fig.~\ref{fig:rom power error} and apparently, the accuracy is comparable to that in Fig.~\ref{fig:deim power error}, implying an accurate approximation of the problem operator via the MDEIM. 
+\begin{figure}[H]
+	\includegraphics[width=1.0\linewidth]{../figures/LRA_power_rom_relative_error.pdf}
+	\caption{Relative error of the power predicted by ROM.}
+	\label{fig:rom power error}
+\end{figure}
+Also, the spatial-averaged relative error in the approximated temperature was computed and is shown in Fig.~\ref{fig:deim tempearture error}.
+\begin{figure}[H]
+	\includegraphics[width=1.0\linewidth]{../figures/temperature_relative_error.pdf}
+	\caption{Relative error of the temperature predicted by ROM.}
+	\label{fig:deim tempearture error}
+\end{figure}
+
+As mentioned earlier, the non-linearity of the fast absorption cross section was approximated using DEIM of rank 10.
+Shown in Fig.~\ref{fig:cross-section deim indices} are the 10 selected interpolation points on the absorption cross section map at the last time step. i.e, $t=3$ s.
+Thus, the temperature is constructed only at these locations from which the cross section is evaluated using Eq.~\ref{eq:doppler}.
+
+\begin{figure}[H]
+	\includegraphics[width=1.0\linewidth]{../figures/LRA_XS_interpolation_points_XS_map.pdf}
+	\caption{The fast cross section at t=3 with the selected interpolation indices in red color.}
+	\label{fig:cross section deim indices}
+\end{figure} 
+
+The power assembly relative errors are computed and shown in Fig.~\ref{fig:assembly power error fm=5} for the $55\times 55$ grid.
+The same errors for the other two grids are given in appendix?.
+\begin{figure}[H]
+	\includegraphics[width=0.9\linewidth]{../figures/lra_assemb_fm=5.pdf}
+	\caption{Assembley power relative error for the $55\times 55$ grid}
+	\label{fig:assembly power error fm=5}
+\end{figure} 
+
+The computational time for the FOM and the ROMS are given in Table~\ref{table:cpu time}.
+
+\begin{table*}[h!]
+	\centering
+	\caption{\bf computational time of the FOM and the ROMs}
+	\label{table:cpu time}
+	\begin{tabular}{c|c|c|c}  
+		grid &	FOM (s)   &  ROM (s) & MDEIM-ROM (s)    \\
+		\hline
+		$22\times 22$ & 426   & 140   & 101   \\
+		$44\times 44$ &  1652  &   283 &  106  \\
+		$55\times 55$ &  2539  & 398   & 110   \\
+		\hline
+	\end{tabular}
+\end{table*}
+
 \section{Using the \texttt{interact} class file}
 
 For convenience, simply copy the \texttt{interact.cls} file into the same directory as your manuscript files (you do not need to install it in your \TeX\ distribution). In order to use the \texttt{interact} document class, replace the command \verb"\documentclass{article}" at the beginning of your document with the command \verb"\documentclass{interact}".
