@@ -14,10 +14,15 @@
 \usepackage{mathtools}
 \usepackage{amssymb}
 \usepackage{caption}
-\usepackage{subcaption}
+%\usepackage{subcaption}
 \usepackage{tikz}
 \usepackage{multirow}
 \usepackage{booktabs,tabularx}
+\DeclareMathOperator{\argmaxH}{argmax} 
+\DeclareMathOperator*{\argmin}{argmin}
+\renewcommand{\algorithmicrequire}{\textbf{Input:}}
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+\newcommand\abs[1]{\left|#1\right|}
 
 \usepackage[numbers,sort&compress]{natbib}% Citation support using natbib.sty
 \bibpunct[, ]{[}{]}{,}{n}{,}{,}% Citation support using natbib.sty
@@ -44,45 +49,223 @@
 
 \articletype{ARTICLE TEMPLATE}% Specify the article type or omit as appropriate
 
-\title{Taylor \& Francis \LaTeX\ template for authors (\textsf{Interact} layout + NLM reference style)}
-
+\title{Model-order reduction of non-linear time dependent neutronics via Galerkin projection and DEIM}
 \author{
-\name{A.~N. Author\textsuperscript{a}\thanks{CONTACT A.~N. Author. Email: latex.helpdesk@tandf.co.uk} and John Smith\textsuperscript{b}}
-\affil{\textsuperscript{a}Taylor \& Francis, 4 Park Square, Milton Park, Abingdon, UK; \textsuperscript{b}Institut f\"{u}r Informatik, Albert-Ludwigs-Universit\"{a}t, Freiburg, Germany}
+\name{Rabab Elzohery \thanks{CONTACT A.~N. Author. Email: rababelzohery@ksu.edu} and Jeremy Roberts}
+\affil{Department of Mechanical and Nuclear Engineering,
+	Kansas State University \\
+	3002 Rathbone Hall, Manhattan, KS 66506, US \\ rababelzohery@ksu.edu, jaroberts@ksu.edu}
 }
 
 \maketitle
 
 \begin{abstract}
-This template is for authors who are preparing a manuscript for a Taylor \& Francis journal using the \LaTeX\ document preparation system and the \texttt{interact} class file, which is available via selected journals' home pages on the Taylor \& Francis website.
+
 \end{abstract}
 
 \begin{keywords}
-Sections; lists; figures; tables; mathematics; fonts; references; appendices
+Galerkin projection; POD; ROM; Neutronic Transient
 \end{keywords}
 
 
 \section{Introduction}
 
-In order to assist authors in the process of preparing a manuscript for a journal, the Taylor \& Francis `\textsf{Interact}' layout style has been implemented as a \LaTeXe\ class file based on the \texttt{article} document class. A \textsc{Bib}\TeX\ bibliography style file and a sample bibliography are also provided in order to assist with the formatting of your references.
+Modeling and simulation of nuclear reactors is crucial to predict their behavior under different conditions and scenarios and hence ensure reliable design and safety limits.
+The mathematical models are described by a set of equations that is challenging to solve analytically due to the geometric complexity of nuclear reactors except for simplified cases.
+Alternatively, these systems are solved by employing numerical discretization that rely on discretizing the system along each independent variable and the solution is provided only on these discrete points.
+To improve the method accuracy, the system needs to be solved over a very fine mesh.
+Although this results in a more reliable solution, it leads to a growing space dimension and accordingly large computational cost.
+This problem of the computational cost becomes inevitably prohibitive with applications that require repetitive execution of the simulation such as uncertainty quantification, and design optimization.
+In such studies, the high-fidelity model has to be solved at multiple parameter points which could be very large.
+Hence, surrogate models that are cheap, yet accurate, are sought to provide a rapid and reliable approximation of the solution of these systems.
+The premise is that this lower-order model will capture the essential features of the system  and preserve the input-output mapping as much as possible.
 
-Commands that differ from or are provided in addition to standard \LaTeXe\ are described in this document, which is \emph{not} a substitute for a \LaTeXe\ tutorial.
+In the application of our interest here, neutronic transients, the mathematical models are based on the diffusion approximation and the Boltzmann transport equation.
+For realistic modeling, these neutron transport model need to be coupled with different physics models to account for the feedback.
+For example, thermal-hydraulics feedback plays an essential role in reactor operation.
+Changes in the fuel temperature alter the cross sections due to Doppler broadening \cite{stacey2018nuclear}, which in turn impacts the neutron population and hence the fission rate and the rate of heat generation.
+Multi-physics modeling accounts for these different feedbacks mechanisms; however, it poses a challenge in terms of the computational cost,
+since it entails solving coupled systems for different fields such as neutron flux, temperature, and flow rate.
+Moreover, the neutron transport (or diffusion) equation is no longer a linear one due to the indirect dependence of the cross section on the neutron flux.
+Two approaches are used to solve such systems.
+The most commonly used one is a serial coupling of two or more separate codes in such a way that the output of one at a given time step, such as the flux distribution, is used as an input to the other, e.g., the temperature (which can be used then to update the cross section and so on).
+This procedure is commonly referred to as operator splitting or explicit coupling.
+One drawback of operator splitting is that time integration requires small steps to avoid stability issues, thus leading to high computational time. 
+Alternatively, tight coupling in time between the physics can be maintained by using an implicit scheme that solves a non-linear iteration in each time step, also increasing the computational time.
+A modern algorithm such as Jacobian free Newton-Krylov (JFNK) \cite{gaston2009parallel} can be used to perform this implicit coupling.
+Another popular approach is to use fixed-point iteration, with an implicit time scheme to iterate between difference physics within a time step until convergence is satisfied, which is compitationaly taxing.
+The aim of this work is to use a reduce-order model to overcome the high computational expense of these non-linear models.
+In particular, the ROM was developed using the POD-Galerkin projection.
+The method belongs to the projection-based family, and can be described as an physics-driven method since it requires knowlege of the original governing equation as will be shown in sec.  .
+In a previous work, \cite{elzohery-greedyPOD}, we applied the method to time dependent diffusion equation where there was no coupling with other models and hence the application was linear.
+In this study, the developed ROM was extended to treat non-linearity problem induced by multi physics modeling.
+The LRA benchmark was used as a demonstrative application where coupling the diffusion equation is coupled with a simplified thermal model.
 
-The \texttt{interactnlmsample.tex} file can be used as a template for a manuscript by cutting, pasting, inserting and deleting text as appropriate, using the preamble and the \LaTeX\ environments provided (e.g.\ \verb"\begin{abstract}", \verb"\begin{keywords}").
+To improve the computational efficiency of the developed ROM, a hyper-reduction technique known as the Discrete Empirical Interpolation Method (DEIM) was used in conjunction of the POD-Galerkin projection.
+The primary purpose of using the DEIM is to obtain an offline-online decomposition of the ROM to avoid repetitive projection of the problem operator at each iteration with each time step.
+The offline stage occurs only once and it comprises the expensive step of the ROM, where the online stage is cheaper and involves solving a reduced number of equation at each time step.
+The following discussion include a general overview of the methods and algorithms, then the specific application was described.
+Results are presented and conclusion was given.
+
+\section{Methods Overview}
+\subsection{POD-Galerkin Projection}\label{class}
 
 
-\subsection{The \textsf{Interact} class file}\label{class}
+Consider the following dynamic system that results from discretizing a partial differential equation using a numerical scheme such as the finite difference method:
+\begin{equation}
+\frac{d\mathbf{y}(t)}{dt} = \mathbf{A}\mathbf{y}(t) + \mathbf{f}(\mathbf{y}(t)),  \quad\quad \mathbf{y(0) = \mathbf{y_0}} \, ,
+\label{eq:FOM}
+\end{equation}
+where $\mathbf{y} \in \mathbb{R}^{n}$ is the state variable and $\mathbf{A} \in \mathbb{R}^{n\times n}$ is the operator resulting from the system discretization.
+In general, this method involves two main steps. 
+First, the state variable $\mathbf{y}$ is expanded in terms of a trial subspace basis, which is the POD space in this case, where each basis vector is weighted by a temporal coefficient
+\begin{equation}
+\mathbf{y} \approx \mathbf{\Phi} \hat{\mathbf{y}}(t) \, ,
+\label{eq:galerkin expansion}
+\end{equation}
+where $\mathbf{\hat{y}(t)} \in \mathbb{R}^{r}$ is a vector of the temporal coefficients.
+Second, the system is projected onto a test subspace, which is the same as the trial subspace in the Galerkin projection procedures.
+By multiplying the system on the left by $\mathbf{\Phi}^T$ and making use of the orthogonality of the POD basis (i.e, $\mathbf{\Phi}^T\mathbf{\Phi} = \mathbf{I}$), we end up with 
+\begin{equation}
+\frac{d\mathbf{\hat{y}}}{dt} = \mathbf{A}_r\mathbf{\hat{y}} + \mathbf{\Phi}^T\mathbf{f}(\mathbf{\Phi}\mathbf{\hat{y}}) \qquad \mathbf{\hat{y}}(0) = \mathbf{\Phi}^T\mathbf{y}_0 \, ,
+\label{eq:ROM}
+\end{equation}
+where $\mathbf{A}_r \in \mathbb{R}^{r\times r} = \mathbf{\Phi}^T\mathbf{A}\mathbf{\Phi}.$
+Thus, we are left with  $r$ ODE's instead of $n$ ODE's, which makes the resulting ROM more computationally efficien, and, once it is solved for $\mathbf{\hat{y}}$, the full order solution can be computed by Eq.~\ref{eq:galerkin expansion}.
+Note that the POD basis is chosen here for its optimality property.
+However, different methods have been used in the literature, such as the eigenmodes analysis and the reduced-basis method \cite{rozza2008reduced, hesthaven2016certified, veroy2003posteriori}.
+Moreover, the test basis and the trial basis could be different, in which case the method is called Petrov-Galerkin projection.
+In such cases, unless the test and the trial basis are bi-orthogonal, there will be an additional computational cost associated with inverting the matrix resulting from multiplying the left hand side of Eq.~\ref{eq:FOM} by the test basis.
 
-The \texttt{interact} class file preserves the standard \LaTeXe\ interface such that any document that can be produced using \texttt{article.cls} can also be produced with minimal alteration using the \texttt{interact} class file as described in this document.
 
-If your article is accepted for publication it will be typeset as the journal requires in Minion Pro and/or Myriad Pro. Since most authors will not have these fonts installed, the page make-up is liable to alter slightly with the change of font. Also, the \texttt{interact} class file produces only single-column format, which is preferred for peer review and will be converted to two-column format by the typesetter if necessary during preparation of the proofs. Please therefore do not try to match the typeset format exactly, but use the standard \LaTeX\ fonts instead and ignore details such as slightly long lines of text or figures/tables not appearing in exact synchronization with their citations in the text: these details will be dealt with by the typesetter. Similarly, it is unnecessary to spend time addressing warnings in the log file -- if your .tex file compiles to produce a PDF document that correctly shows how you wish your paper to appear, such warnings will not prevent your source files being imported into the typesetter's program.
+\subsection{Discrete Impricical Interpolation Method \emph{\LaTeX}}
+
+\label{sec:DEIM}
+Recently, the DEIM \cite{chaturantabut2010nonlinear} was proposed to approximate the non-linearity in model order reduction.
+The method is a discrete variant of the Empirical Interpolation Method (EIM) \cite{barrault2004empirical} that was originally proposed to approximate
+non-affine coefficient functions using a reduced-basis expansion to facilitate the online/offline decomposition in finite element methods.
+The DEIM is proposed for the same goal for different discretizations of the full-order model.
+The method relies on two main ingredients: (1) a reduced space that approximates the nonlinear function, and (2) a set of spatial interpolation indices.
+To illustrate the method, let $\tau$ denote time or a model parameter.
+The nonlinear function $\mathbf{f}(\textbf{y}(\tau))$ is approximated by projecting it onto a subspace that approximates the function space
+\begin{equation}
+\mathbf{f}(\textbf{y}(\tau)) = \mathbf{\Psi}\boldsymbol{\theta}(\tau)\, ,
+\end{equation}
+where $\mathbf{\Psi} \in \mathbb{R}^{n\times k}$ is a low-dimensional subspace with $k \ll n$, and $\boldsymbol{\theta}(\tau) \in \mathbb{R}^k$ is a vector of the corresponding coefficients.
+POD is used to find the subspace $\mathbf{\Psi}$ using snapshots of the function (i.e, $[\textbf{y}(\tau_1), ....., \textbf{y}(\tau_m)]$).
+Note that these snapshots are computed at the same points used for the state variable snapshots required for the reduced model; hence this step will not introduce any additional cost other than computing the SVD.
+In order to compute $\theta(\tau)$, a few spatial indices are selected iteratively using a greedy search following Algorithm \ref{alg:DEIM}.
+The basic idea is to select $k$ rows of the basis matrix $\mathbf{\Psi}$.
+The algorithm takes as an input the basis vectors of the subspace $\mathbf{\Psi}$.
+The first index is selected where the entry of the first input basis has the largest magnitude.
+Each other index $\mathcal{I}_i$ is selected where the approximation of the corresponding input basis vector $\mathbf{\Psi_i}$ in the subspace constructed by interpolating the basis $[\mathbf{\Psi}_1, ....\mathbf{\Psi}_{i-1}]$ at the previously selected indices is worst.
+Once the indices are selected, the matrix $\mathbf{\Psi}_k \in \mathbb{R}^{k\times k}$ is formed such that
+\begin{equation}
+\mathbf{\Psi}_k = \mathbf{P}^T\mathbf{\Psi}\, ,
+\end{equation}
+where $\mathbf{P} = [e_{z1}, e_{z2}, ....,e_{zk}] \in \mathbb{R}^{n\times k}$ and $e_{zi} = [0,.., 0, \underbrace{1}_{{zi}}, 0..., 0]^\text{T} \in \mathbb{R}^{n}$
+is the  ${zi}$th column of the identity matrix.
+The coefficients can be computed by solving
+\begin{equation}
+\mathbf{P}^T\mathbf{f(\tau)}=\mathbf{\Psi}_k \boldsymbol{\theta}(\tau)\, ,
+\label{eq:DEIM coefficients}
+\end{equation}
+and the final function approximation is given by
+\begin{equation}
+\hat{\mathbf{f}}(\tau)\approx\mathbf{\Psi}( \mathbf{\Psi}_k)^{-1}\mathbf{P}^T\mathbf{f} (\tau)\, .
+\end{equation}
+Note that the matrix $\mathbf{P}$ does not need to be constructed explicitly, since the term $\mathbf{P}^T\mathbf{f}$ extracts only the elements of $\mathbf{f}$ that correspond to the interpolation indices.
+Thus, at each time step, only $k$ elements $\mathbf{f}$ need to be evaluated.
+The approximation error can be bounded as 
+\begin{equation}
+\|\mathbf{f} - \hat{\mathbf{f}} \| \le \|(\mathbf{P}\mathbf{\Psi})^{-1} \| \epsilon \, ,
+\end{equation}
+where
+\begin{equation*}
+\epsilon \approx \sigma_{k+1} \, .
+\end{equation*}
+Note that $\sigma_{k+1}$ is the $(k+1)th$ singular value coming from the SVD of the function snapshots matrix.
+Full derivation of the error bound is given in Ref.~\cite{chaturantabut2010nonlinear}.
+
+As explained in the previous section, the projection can be performed by computing the term $\mathbf{U}^T \mathbf{\Psi}$ once in an offline stage, while in the online stage, the vector $\boldsymbol{\theta}$ is computed by solving the linear system of dimension $k$ in Eq.~\ref{eq:DEIM coefficients}.
+The key point is that the cost of the online computation depends on the reduced dimension $k$, not the original, high dimension $n$.
+\noindent\begin{minipage}{\textwidth}
+	\renewcommand\footnoterule{}
+	\begin{algorithm}[H]
+		\caption{DEIM}
+		\label{alg:DEIM}
+		\begin{algorithmic}[1]
+			\REQUIRE Snapshots matrix: $\mathbf{X} = [\mathbf{f}_1, \mathbf{f}_2,  ...., \mathbf{f}_m] \in \mathbb{R}^{n\times m}$
+			\ENSURE A reduced space $\mathbf{\Psi}$, set of indices $\mathcal{I}$
+			\STATE $[\mathbf{\Psi}_1, \mathbf{\Psi}_2, ..., \mathbf{\Psi}_k ]$ = POD(${\mathbf{X}}, \epsilon$)\footnote{POD refers to Algorithm \ref{alg:pod}}
+			\STATE $\mathcal{I}_1 = \argmaxH(\abs{\mathbf{\Psi}_1})$, $\mathcal{I}$ = $\{\mathcal{I}_1\}$
+			\STATE $\mathbf{\Psi} = [\mathbf{\Psi}_1]$, $\mathbf{P} =[e_{I_1}]$
+			\FOR {i=2 \TO i=k }
+			\STATE Solve $(\mathbf{P}^T\mathbf{\Psi})\mathbf{c} = \mathbf{P}^T\mathbf{\Psi}_i$;
+			\STATE $\mathcal{I}_i = \argmaxH{\abs{\mathbf{\Psi}_i - \mathbf{\Psi}\mathbf{c}}}$
+			\STATE $\mathcal{I} = \mathcal{I} \cup \mathcal{I}_i$, $\mathbf{P} = \mathbf{P} \cup e_{I_i}$, ${\Psi = \Psi \cup \Psi_i}$
+			\ENDFOR
+		\end{algorithmic}
+	\end{algorithm}
+\end{minipage}
 
 
-\subsection{Submission of manuscripts prepared using \emph{\LaTeX}}
+\subsection{Greedy POD}
+A greedy sampling in the parameter space \cite{nguyen2009reduced} can be combined with POD to construct a global subspace that can be used in the framework of parametric ROMs.
+The primary goal is to ensure that the parameter domain of interest (i.e, $\mathbb P$) is efficiently sampled and includes enough information such that it can be used or wide range of parameters including those of higher dimensions.
+To construct this subspace, a training parameters dataset, $P_{train} \subset \mathbb P$, is prepared. 
+The greedy subspace is initialized with the first $r_1$ POD basis computed from a randomly selected sample of the training data.
+Next, this subspace is used to compute the ROM prediction error of the state variable for the rest of the training samples.
+The sample at which the error is worst is selected, and the subspace is enriched by adding the first $r_1$ POD basis computed from the selected sample snapshots.
+Selecting the samples with the worst errors ensures efficient sampling of the parameter space.
+Intuitively, samples that are close to the previously chosen parameter points will have a smaller ROM error.
+On the other hand, one expects that the ROM will fail to give an accurate prediction at samples that are far from the included points in the current subspace.
+Thus, we keep adding new basis vectors until a maximum size of the subspace is reached or a user-specified error tolerance at a reference parameter point $\boldsymbol{\mu}_{\text{ref}}$ is met.
+Note that each time a new basis vector is added, the subspace is orthonormalized.
+Regarding the error criteria based on which a new sample is selected, there are two approaches. 
+Ideally, the true error can be used leading to ``strong POD-greedy'' \cite{benner2017model}.
+Alternatively, an error indicator can be used to alleviate the computational burden associated with evaluating the full-order-model. 
+Here, we used the strong-POD greedy approach. 
+The algorithm steps are shown in Algorithm \ref{alg:greedy pod}. 
+The term $\Delta(\textbf{U},\boldsymbol{\mu}_\text{ref})$  is the error measure using the current reduced subspace at $\boldsymbol{\mu}_\text{ref}$, and $r$ is the maximum size of the greedy basis.
 
-Manuscripts for possible publication should be submitted to the Editors for review as directed in the journal's Instructions for Authors, and in accordance with any technical instructions provided in the journal's ScholarOne Manuscripts or Editorial Manager site. Your \LaTeX\ source file(s), the class file and any graphics files will be required in addition to the final PDF version when final, revised versions of accepted manuscripts are submitted.
-
-Please ensure that any author-defined macros used in your article are gathered together in the preamble of your .tex file, i.e.\ before the \verb"\begin{document}" command. Note that if serious problems are encountered in the coding of a document (missing author-defined macros, for example), the typesetter may resort to rekeying it.
+\begin{algorithm}[H]
+	
+	\begin{algorithmic}
+		
+		\REQUIRE $\epsilon_{tol}, r, r_1, P_{train} \subset \mathbb P$ 
+		
+		\ENSURE A reduced space $\textbf{U}$
+		
+		\STATE set n=0 
+		
+		\WHILE {$\epsilon:= \Delta(\textbf{U}, \boldsymbol{\mu}_\text{ref}) > \epsilon_{tol}$ or $n < r$}
+		
+		\STATE $\boldsymbol{\mu} := \argmaxH_{\boldsymbol{\mu}_\in P_{train}} \Delta(\textbf{U}, \boldsymbol{\mu)}$
+		
+		\STATE evaluate the FOM at $\boldsymbol{\mu}$, $\textbf Y(\boldsymbol{\mu})$:= $\{\textbf{y}^1, \textbf{y}^2, ..... \textbf{y}^k\}$ 
+		
+		\STATE compute the POD modes of the FOM snapshots, $\{\zeta_1, \zeta_2, ......,\zeta_{r1}\} := \text{POD}(\textbf{Y}(\boldsymbol{\mu}), r_1)$
+		
+		\STATE Compute the SVD of $\textbf Y(\mu)$ and keep the first $r_1$ POD modes:$\{\zeta_1, \zeta_2, ......,\zeta_{r1}\}= \text{POD}(\textbf{y}^1, \textbf{y}^2, ..... \textbf{y}^k\}, r_1) $
+		
+		\STATE $Z = \{Z, \{\zeta_1, \zeta_2, ....,\zeta_{r1}\}\}$ \text{and set} $n = n+r_1$
+		
+		\STATE update the reduced space, $\textbf{U} := \textbf{U} \cup \{\zeta_1, \zeta_2, ..,\zeta_{r1}\} $ and orthonormalize
+		
+		\STATE $n:=n+r_1$
+		
+		\STATE $ \textbf{compute} ~\epsilon = \Delta(\textbf{U}, \mu_0)$
+		
+		\ENDWHILE
+		
+	\end{algorithmic}
+	
+	\caption{POD-greedy sampling procedures}
+	
+	\label{alg:greedy pod}
+	
+\end{algorithm}
 
 
 \section{Benchmark Desription}
@@ -200,21 +383,21 @@ This reference solution is not numerically converged in either the space or the 
 	\label{fig:lra fom power}
 \end{figure}
 
-\begin{figure}[H]
-	\centering
-	\begin{subfigure}[b]{0.7\textwidth}
-		\includegraphics[width=1.0\linewidth]{../figures/ss_fom_fast_flux_image.pdf}
-		\caption{Steady state fast flux.}
-		\label{fig:ss fast flux}
-	\end{subfigure}
-	\begin{subfigure}[b]{0.7\textwidth}
-		\includegraphics[width=1.0\linewidth]{../figures/ss_fom_thermal_flux_image.pdf}
-		\caption{Steady state thermal flux.}
-		\label{fig:ss thermal flux}
-	\end{subfigure}
-	\caption{Steady state group flux $(\text{neutrons}.\text{cm}^2/s)$}
-	\label{fig:lra ss flux}
-\end{figure}
+%\begin{figure}[H]
+%	\centering
+%	\begin{subfigure}[b]{0.7\textwidth}
+%		\includegraphics[width=1.0\linewidth]{../figures/ss_fom_fast_flux_image.pdf}
+%		\caption{Steady state fast flux.}
+%		\label{fig:ss fast flux}
+%	\end{subfigure}
+%	\begin{subfigure}[b]{0.7\textwidth}
+%		\includegraphics[width=1.0\linewidth]{../figures/ss_fom_thermal_flux_image.pdf}
+%		\caption{Steady state thermal flux.}
+%		\label{fig:ss thermal flux}
+%	\end{subfigure}
+%	\caption{Steady state group flux $(\text{neutrons}.\text{cm}^2/s)$}
+%	\label{fig:lra ss flux}
+%\end{figure}
 
 
 \begin{table}[h!]
@@ -240,7 +423,7 @@ This reference solution is not numerically converged in either the space or the 
 		\hline
 	\end{tabular}
 	{\raggedright $v_1 = 3\times10^{7} ~\text{cm/sec}. $,  $v_2 = ~3\times10^{5} \text{cm.sec}.$  \par}
-	\caption{Two-group diffusion constants}
+	\caption{Two group constants of the TWIGL benchmark.}
 	\label{tab:twogroup}
 \end{table}
 
@@ -268,7 +451,7 @@ Similar to the TWIGL benchmark ROM, POD basis set was generated for each group f
 $\mathbf{\Phi}_1(t) = \mathbf{U}_1\mathbf{a}_1(t)$, $\mathbf{\Phi}(t)_2 = \mathbf{U}_2\mathbf{a}_2(t)$ and $\mathbf{C}(t) = \mathbf{U}_c\mathbf{a}_c(t)$, where the $\mathbf{U}_1$, $\mathbf{U}_2$  and $\mathbf{U}_c$ are the POD bases of the fast group, thermal group and precursor concentration respectively, and $\mathbf{a}_1$, $\mathbf{a}_2$ and $\mathbf{a}_c$ are their respective temporal coefficients. 
 The first 100 normalized singular values \footnote{The normalization is done be dividing each singular value by the sum of all singular values.} of the group flux are shown in Fig.~\ref{fig:lra singular values}.
 \begin{figure}[h!]
-	\includegraphics[width=1.0\linewidth]{figures/LRA/LRA_singular_values.pdf}
+	\includegraphics[width=1.0\linewidth]{../figures/LRA_singular_values.pdf}
 	\caption{flux normalized singular value.}
 	\label{fig:lra singular values}
 \end{figure}
@@ -283,7 +466,7 @@ To obtain the subspace, snapshots of the temperature were collected at different
 Shown in Fig.~\ref{fig:lra T singular values} are the first 100 normalized singular values, based on which a POD of rank $10$ was selected for approximating the temperature.
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=1.0\linewidth]{figures/LRA/LRA_T_singular_values.pdf}
+	\includegraphics[width=1.0\linewidth]{../figures/LRA_T_singular_values.pdf}
 	\caption{temperature normalized singular value.}
 	\label{fig:lra T singular values}
 \end{figure}
@@ -309,7 +492,7 @@ The MDEIM was used to decompose the operator and hence avoid performing the expe
 Shown in Fig.~\ref{fig:lra L singular values} are the singular values resulting from the SVD of the serialized operator snapshots. 
 Based on the shown plot, a DEIM of order $15$ was used.
 \begin{figure}[H]
-	\includegraphics[width=1.0\linewidth]{figures/LRA/LRA_L_singular_values.pdf}
+	\includegraphics[width=1.0\linewidth]{../figures/LRA_L_singular_values.pdf}
 	\caption{Operator normalized singular value.}
 	\label{fig:lra L singular values}
 \end{figure}
@@ -320,21 +503,21 @@ Based on the shown plot, a DEIM of order $15$ was used.
 \subsubsection{ROM results}
 ROMs were constructed for FOMs models with increasing the spatial fidelity, i.e, spatial grids of $22\times 22$, $44\times44$ and $55 \times 55$.
 For brevity, we show the POD modes with their temporal coefficients of only the $55 \times 55$  grid in Fig.~\ref{fig:lra flux modes}.
-\begin{figure}[H]
-	\centering
-	\begin{subfigure}[b]{0.45\textwidth}
-		\includegraphics[width=1.0\linewidth]{../figures/LRA_fast_modes.pdf}
-		\caption{Fast flux modes.}
-		\label{fig:ss fast flux}
-	\end{subfigure}
-	\begin{subfigure}[b]{0.45\textwidth}
-		\includegraphics[width=1.0\linewidth]{../figures/LRA_thermal_modes.pdf}
-		\caption{Thermal flux modes.}
-		\label{fig:ss thermal flux}
-	\end{subfigure}
-	\caption{Flux POD modes and their temporal coefficient.}
-	\label{fig:lra flux modes}
-\end{figure}
+%\begin{figure}[H]
+%	\centering
+%	\begin{subfigure}[b]{0.45\textwidth}
+%		\includegraphics[width=1.0\linewidth]{../figures/LRA_fast_modes.pdf}
+%		\caption{Fast flux modes.}
+%		\label{fig:ss fast flux}
+%	\end{subfigure}
+%	\begin{subfigure}[b]{0.45\textwidth}
+%		\includegraphics[width=1.0\linewidth]{../figures/LRA_thermal_modes.pdf}
+%		\caption{Thermal flux modes.}
+%		\label{fig:ss thermal flux}
+%	\end{subfigure}
+%	\caption{Flux POD modes and their temporal coefficient.}
+%	\label{fig:lra flux modes}
+%\end{figure}
 Using ROMs with the specifications given in the previous section, the absolute relative error in the predicted powers are computed as shown in Fig.~\ref{fig:deim power error}.
 \begin{figure}[H]
 	\includegraphics[width=1.0\linewidth]{../figures/LRA_power_deim_relative_error.pdf}
@@ -834,6 +1017,10 @@ Berrino~F, Gatta~G, Crosignani~P. [Case-control evaluation of screening
 Piaget~J, Inhelder~B. La gen{\`e}se de l'id{\'e}e de hasard chez l'enfant
   [The origin of the idea of chance in the child]. Paris: Presses
   Universitaires de France; 1951.
+  
+ \bibitem{elzohery-greedyPOD}
+ Elzohery, Rabab and Roberts, Jeremy [Modeling neutronic transients with Galerkin projection onto a greedy-sampled, POD subspace]. Annals of Nuclear Energy; 2021.
+
 
 \end{thebibliography}
 \bigskip
