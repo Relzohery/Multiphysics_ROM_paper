@@ -14,7 +14,8 @@
 \usepackage{mathtools}
 \usepackage{amssymb}
 \usepackage{caption}
-%\usepackage{subcaption}
+\usepackage{subcaption}
+\usepackage{threeparttable}
 \usepackage{tikz}
 \usepackage{multirow}
 \usepackage{booktabs,tabularx}
@@ -45,6 +46,8 @@
 \newtheorem{remark}{Remark}
 \newtheorem{notation}{Notation}
 
+
+
 \begin{document}
 
 \articletype{ARTICLE TEMPLATE}% Specify the article type or omit as appropriate
@@ -70,7 +73,7 @@ Galerkin projection; POD; ROM; Neutronic Transient
 
 \section{Introduction}
 
-Modeling and simulation of nuclear reactors is crucial to predict their behavior under different conditions and scenarios and hence ensure reliable design and safety limits.
+Modeling and simulation of reactor physics is crucial to understand the nuclear reactors behavior under different conditions and scenarios and hence ensure reliable design and well established safety limits.
 The mathematical models are described by a set of equations that is challenging to solve analytically due to the geometric complexity of nuclear reactors except for simplified cases.
 Alternatively, these systems are solved by employing numerical discretization that rely on discretizing the system along each independent variable and the solution is provided only on these discrete points.
 To improve the method accuracy, the system needs to be solved over a very fine mesh.
@@ -107,9 +110,10 @@ The offline stage occurs only once and it comprises the expensive step of the RO
 The following discussion include a general overview of the methods and algorithms, then the specific application was described.
 Results are presented and conclusion was given.
 
+%--------------------------------------------------------------------------------------------------%
 \section{Methods Overview}
-\subsection{POD-Galerkin Projection}\label{class}
 
+\subsection{POD-Galerkin Projection}\label{class}
 
 Consider the following dynamic system that results from discretizing a partial differential equation using a numerical scheme such as the finite difference method:
 \begin{equation}
@@ -117,39 +121,45 @@ Consider the following dynamic system that results from discretizing a partial d
 \label{eq:FOM}
 \end{equation}
 where $\mathbf{y} \in \mathbb{R}^{n}$ is the state variable and $\mathbf{A} \in \mathbb{R}^{n\times n}$ is the operator resulting from the system discretization.
-In general, this method involves two main steps. 
-First, the state variable $\mathbf{y}$ is expanded in terms of a trial subspace basis, which is the POD space in this case, where each basis vector is weighted by a temporal coefficient
+In general, this method involves two main steps.
+First, a subspace is obtained using the POD which is a widely used reduction technique.
+Commonly, the POD subspace is generated using the snapshots method \cite. 
+A data matrix $\mathbf{Y}$ is constructed by collecting the system solutions at different time instances, then the singular value decomposition (SVD) is computed, i.e $\mathbf{Y} = \mathbf{U}\mathbf{\Sigma}\mathbf{V}$.
+The POD subspace is the one spanned by the first $r$ vector of $\mathbf{U}$, where $r \ll n$.
+There is no general \textit{a priori} rule based on which the rank is chosen; however one can set a threshold $\epsilon$  such that
 \begin{equation}
-\mathbf{y} \approx \mathbf{\Phi} \hat{\mathbf{y}}(t) \, ,
-\label{eq:galerkin expansion}
+\frac{\sum_{i=0}^r S_i}{\sum_{i=0}^m S_i} \ge \epsilon \, ,
+\end{equation}
+where S$i$ is the $i$th singular value.
+For more details the reader might consult \cite{bibid}, 
+Upon obtaining the reduced space, the state variable $\mathbf{y}$ is expanded in terms of its basis, where each basis vector is weighted by a temporal coefficient
+\begin{equation}
+	\mathbf{y} \approx \mathbf{U} \hat{\mathbf{y}}(t) \, ,
+	\label{eq:galerkin expansion}
 \end{equation}
 where $\mathbf{\hat{y}(t)} \in \mathbb{R}^{r}$ is a vector of the temporal coefficients.
-Second, the system is projected onto a test subspace, which is the same as the trial subspace in the Galerkin projection procedures.
-By multiplying the system on the left by $\mathbf{\Phi}^T$ and making use of the orthogonality of the POD basis (i.e, $\mathbf{\Phi}^T\mathbf{\Phi} = \mathbf{I}$), we end up with 
+Second, the system is projected onto a POD subspace by multiplying the system on the left by $\mathbf{\Phi}^T$ and making use of the orthogonality of the POD basis (i.e, $\mathbf{U}^T\mathbf{U} = \mathbf{I}$), we end up with 
 \begin{equation}
-\frac{d\mathbf{\hat{y}}}{dt} = \mathbf{A}_r\mathbf{\hat{y}} + \mathbf{\Phi}^T\mathbf{f}(\mathbf{\Phi}\mathbf{\hat{y}}) \qquad \mathbf{\hat{y}}(0) = \mathbf{\Phi}^T\mathbf{y}_0 \, ,
-\label{eq:ROM}
+	\frac{d\mathbf{\hat{y}}}{dt} = \mathbf{A}_r\mathbf{\hat{y}} + \mathbf{\Phi}^T\mathbf{f}(\mathbf{U}\mathbf{\hat{y}}) \qquad \mathbf{\hat{y}}(0) = \mathbf{U}^T\mathbf{y}_0 \, ,
+	\label{eq:ROM}
 \end{equation}
 where $\mathbf{A}_r \in \mathbb{R}^{r\times r} = \mathbf{\Phi}^T\mathbf{A}\mathbf{\Phi}.$
 Thus, we are left with  $r$ ODE's instead of $n$ ODE's, which makes the resulting ROM more computationally efficien, and, once it is solved for $\mathbf{\hat{y}}$, the full order solution can be computed by Eq.~\ref{eq:galerkin expansion}.
-Note that the POD basis is chosen here for its optimality property.
-However, different methods have been used in the literature, such as the eigenmodes analysis and the reduced-basis method \cite{rozza2008reduced, hesthaven2016certified, veroy2003posteriori}.
-Moreover, the test basis and the trial basis could be different, in which case the method is called Petrov-Galerkin projection.
-In such cases, unless the test and the trial basis are bi-orthogonal, there will be an additional computational cost associated with inverting the matrix resulting from multiplying the left hand side of Eq.~\ref{eq:FOM} by the test basis.
 
+%--------------------------------------------------------------------------------------------------%
 
-\subsection{Discrete Impricical Interpolation Method \emph{\LaTeX}}
+\subsection{Discrete Empirical Interpolation Method}
 
 \label{sec:DEIM}
 Recently, the DEIM \cite{chaturantabut2010nonlinear} was proposed to approximate the non-linearity in model order reduction.
-The method is a discrete variant of the Empirical Interpolation Method (EIM) \cite{barrault2004empirical} that was originally proposed to approximate
-non-affine coefficient functions using a reduced-basis expansion to facilitate the online/offline decomposition in finite element methods.
-The DEIM is proposed for the same goal for different discretizations of the full-order model.
+%The method is a discrete variant of the Empirical Interpolation Method (EIM) \cite{barrault2004empirical} that was originally proposed to approximate
+%non-affine coefficient functions using a reduced-basis expansion to facilitate the online/offline decomposition in finite element methods.
+The DEIM is proposed to facilitate the online/offline decomposition of ROMs.
 The method relies on two main ingredients: (1) a reduced space that approximates the nonlinear function, and (2) a set of spatial interpolation indices.
 To illustrate the method, let $\tau$ denote time or a model parameter.
 The nonlinear function $\mathbf{f}(\textbf{y}(\tau))$ is approximated by projecting it onto a subspace that approximates the function space
 \begin{equation}
-\mathbf{f}(\textbf{y}(\tau)) = \mathbf{\Psi}\boldsymbol{\theta}(\tau)\, ,
+	\mathbf{f}(\textbf{y}(\tau)) = \mathbf{\Psi}\boldsymbol{\theta}(\tau)\, ,
 \end{equation}
 where $\mathbf{\Psi} \in \mathbb{R}^{n\times k}$ is a low-dimensional subspace with $k \ll n$, and $\boldsymbol{\theta}(\tau) \in \mathbb{R}^k$ is a vector of the corresponding coefficients.
 POD is used to find the subspace $\mathbf{\Psi}$ using snapshots of the function (i.e, $[\textbf{y}(\tau_1), ....., \textbf{y}(\tau_m)]$).
@@ -161,34 +171,58 @@ The first index is selected where the entry of the first input basis has the lar
 Each other index $\mathcal{I}_i$ is selected where the approximation of the corresponding input basis vector $\mathbf{\Psi_i}$ in the subspace constructed by interpolating the basis $[\mathbf{\Psi}_1, ....\mathbf{\Psi}_{i-1}]$ at the previously selected indices is worst.
 Once the indices are selected, the matrix $\mathbf{\Psi}_k \in \mathbb{R}^{k\times k}$ is formed such that
 \begin{equation}
-\mathbf{\Psi}_k = \mathbf{P}^T\mathbf{\Psi}\, ,
+	\mathbf{\Psi}_k = \mathbf{P}^T\mathbf{\Psi}\, ,
 \end{equation}
 where $\mathbf{P} = [e_{z1}, e_{z2}, ....,e_{zk}] \in \mathbb{R}^{n\times k}$ and $e_{zi} = [0,.., 0, \underbrace{1}_{{zi}}, 0..., 0]^\text{T} \in \mathbb{R}^{n}$
 is the  ${zi}$th column of the identity matrix.
 The coefficients can be computed by solving
 \begin{equation}
-\mathbf{P}^T\mathbf{f(\tau)}=\mathbf{\Psi}_k \boldsymbol{\theta}(\tau)\, ,
-\label{eq:DEIM coefficients}
+	\mathbf{P}^T\mathbf{f(\tau)}=\mathbf{\Psi}_k \boldsymbol{\theta}(\tau)\, ,
+	\label{eq:DEIM coefficients}
 \end{equation}
 and the final function approximation is given by
 \begin{equation}
-\hat{\mathbf{f}}(\tau)\approx\mathbf{\Psi}( \mathbf{\Psi}_k)^{-1}\mathbf{P}^T\mathbf{f} (\tau)\, .
+	\hat{\mathbf{f}}(\tau)\approx\mathbf{\Psi}( \mathbf{\Psi}_k)^{-1}\mathbf{P}^T\mathbf{f} (\tau)\, .
 \end{equation}
 Note that the matrix $\mathbf{P}$ does not need to be constructed explicitly, since the term $\mathbf{P}^T\mathbf{f}$ extracts only the elements of $\mathbf{f}$ that correspond to the interpolation indices.
 Thus, at each time step, only $k$ elements $\mathbf{f}$ need to be evaluated.
 The approximation error can be bounded as 
 \begin{equation}
-\|\mathbf{f} - \hat{\mathbf{f}} \| \le \|(\mathbf{P}\mathbf{\Psi})^{-1} \| \epsilon \, ,
+	\|\mathbf{f} - \hat{\mathbf{f}} \| \le \|(\mathbf{P}\mathbf{\Psi})^{-1} \| \epsilon \, ,
 \end{equation}
 where
 \begin{equation*}
-\epsilon \approx \sigma_{k+1} \, .
+	\epsilon \approx \sigma_{k+1} \, .
 \end{equation*}
 Note that $\sigma_{k+1}$ is the $(k+1)th$ singular value coming from the SVD of the function snapshots matrix.
 Full derivation of the error bound is given in Ref.~\cite{chaturantabut2010nonlinear}.
 
 As explained in the previous section, the projection can be performed by computing the term $\mathbf{U}^T \mathbf{\Psi}$ once in an offline stage, while in the online stage, the vector $\boldsymbol{\theta}$ is computed by solving the linear system of dimension $k$ in Eq.~\ref{eq:DEIM coefficients}.
 The key point is that the cost of the online computation depends on the reduced dimension $k$, not the original, high dimension $n$.
+The matrix version of the DEIM (MDEIM) is suggested in \cite{carlberg2012efficient, benner2015survey} to approximate parameter/time-dependent operators.
+Consider a parameterized matrix $\mathbf{A}(\boldsymbol{\mu}) \in \mathbb{R}^{n\times n}$, the goal is to find a decomposition similar to Eq.~\ref{Eq:matrix decomposition} so that an offline-online ROM splitting is attainable.
+The DEIM procedures can be exploited to find such decomposition. First, the matrix can be cast in a vector form by stacking all of its columns in one vector $\mathbf{a}(\mu) \in \mathbb{R}^{n^2}$.
+This vector can be treated in the same exact way as the function $\mathbf{f}(t)$ in the previous section, i.e, $\mathbf{a}(\mu) = \mathbf{\Psi}\boldsymbol{\theta}(\mu)$.
+Snapshots of the serialized matrix are collected at different parameter values and the reduced subspace $\mathbf{\Psi}$ and the interpolation indices are computed following algorithm \ref{alg:DEIM}.
+Again, the corresponding coefficients are obtained by solving Eq.~\ref{eq:DEIM coefficients}. 
+Next, each vector in $\mathbf{\Psi}$ can be mapped back to an $n \times n$ matrix, i.e, $\textbf{A}_i$.
+Hence, the matrix is approximated as $\mathbf{\hat{A}}(t)=\sum_{i=0}^k \theta_i(t) \mathbf{A}_i$ and the projection term is computed as in Eq.~\ref{Eq:deim matrix projection}.
+As pointed out in Ref.\cite{negri2015efficient}, the Weyl\textendash Mirsky theorem \cite{weyl1912asymptotische} ensures that the singular values of the approximated matrix approach that of the original as $k$ increases 
+\begin{equation}
+	|\sigma_i - \hat{\sigma_i}  |\ \le \|\mathbf{A} - \hat{\mathbf{A}}\|_\text{F}
+\end{equation}
+where $\sigma_i$ and $\hat{\sigma_i}$ denote the $i$th singular value of $\mathbf{A}$ and $\hat{\mathbf{A}}$ respectively.
+Moreover, some properties of the original matrix such as positive definiteness can be preserved \cite{carlberg2015preserving}, if necessary, by imposing some constrains to the problem in Eq.~\ref{eq:DEIM coefficients}.
+
+%In the practical implementations, the method efficiency can be improved, as suggested in Ref. \cite{negri2015efficient}.
+%First, the matrix $\mathbf{A}$ is, generally, largely sparse, which leads to a snapshots matrix that is sparse, too.
+%Consequently, it is more convenient to store only the nonzero elements ($nz$) in $\mathbf{a}$, 
+%which should be appreciably more efficient in terms of memory and computational expense.
+%In addition, to obtain the expansion coefficients ($\boldsymbol{\theta}$), the term $\mathbf{P}^T\mathbf{a(\tau)}$ needs to be computed at each new parameter value.
+%In fact, this term only extracts the elements of $\mathbf{a(\tau)}$ that corresponds to the selected  interpolation indices.
+In the offline stage, a mapping can be done between these interpolation indices and the corresponding row-column pairs in $\mathbf{A}$.
+When the matrix is formed in the online stage, only these entries are evaluated by restricting a \textit{for loop } over these row-column pairs, leading to more reduction in the computational cost.
+
 \noindent\begin{minipage}{\textwidth}
 	\renewcommand\footnoterule{}
 	\begin{algorithm}[H]
@@ -211,6 +245,7 @@ The key point is that the cost of the online computation depends on the reduced 
 
 
 \subsection{Greedy POD}
+
 A greedy sampling in the parameter space \cite{nguyen2009reduced} can be combined with POD to construct a global subspace that can be used in the framework of parametric ROMs.
 The primary goal is to ensure that the parameter domain of interest (i.e, $\mathbb P$) is efficiently sampled and includes enough information such that it can be used or wide range of parameters including those of higher dimensions.
 To construct this subspace, a training parameters dataset, $P_{train} \subset \mathbb P$, is prepared. 
@@ -267,14 +302,118 @@ The term $\Delta(\textbf{U},\boldsymbol{\mu}_\text{ref})$  is the error measure 
 	
 \end{algorithm}
 
+%-----------------------------------------------------------------------------------------------------%
+\section{Application}
 
-\section{Benchmark Desription}
-The LRA benchmark employs two energy groups and two delayed precursors and represents a 2-D quarter-core, BWR model subject to a control-rod ejection with adiabatic heating \cite{anl}.
-Schematic layout of the problem is shown in Fig.~\ref{fig:lra core}, where region numbers indicate different materials and region R is the ejected rod.
+\subsection{Time Dependent Diffusion Equation}
+\label{sec:fom}
+The time dependent diffusion equation was used as the mathematical model describing the neutronic transient in a nuclear reactor, i.e FOM and for which a an approximate ROM is sought.
+It is represented as
+\begin{equation}
+	\begin{split}
+	\frac{1}{v_g} \frac{\partial\phi_g}{\partial t} &= 
+	\nabla. D_g\nabla\phi_g - \Sigma_{tg}\phi_g + \sum_{g^\prime=1}^{G}{\Sigma_{sg^\prime g}}\phi_{g^\prime} \\
+	&+ \chi_g(1-\beta)\sum_{g^\prime = 1}^{G}\nu\Sigma_{fg^\prime}\phi_{g^\prime}  
+	+ \chi_g\sum_{i=1}^{P} \lambda_i C_i \, ,
+	\end{split}
+	\label{time_diff}
+\end{equation}
+where 
+\begin{equation*}
+	\frac{\partial C_i}{\partial t} = -\lambda_i C_i + \beta_i \sum_{g^\prime=1}^{G} \nu\Sigma_{fg^\prime} \phi_{g^\prime} \, ,
+\end{equation*}
+and $\phi_g$, $D_g$, $\Sigma_{ag}$, $\nu\Sigma_{fg}$ and $v_g$ are the neutron flux, diffusion coefficient, the absorption cross section, the production cross section and the average neutron velocity in group g, respectively. $\Sigma_{sg^\prime g}$ is the scattering cross section from group $g^\prime$ to group $g$ 
+and $\chi_g$ is the probability that a fission neutron will be born in group $g$.
+$C_i$ is the $i$th precursor concentration, $\beta_i$ is the fraction of delayed neutrons in group $i$, $\lambda_i$ is the $i$th group decay constant.
+The system can be represented compactly in a matrix form as 
+\begin{equation}
+\frac{\partial{y}(r, t)}{\partial{t}} = \mathcal{A}{y}(r, t) \, ,
+\end{equation}
+where the stacked unknowns are
+\begin{equation*}
+	{y} = 
+	\begin{pmatrix}
+	\phi_1(r, t) \\
+	\vdots \\
+	\phi_G(r, t)  \\
+	{C}_1(r, t) \\
+	\vdots \\
+	{C}_I(r, t) \\
+	\end{pmatrix} \, .
+\end{equation*}
+
+%\begin{equation*}
+%\mathcal{A} = \left(\begin{array}{@{}c|c@{}}
+%\begin{matrix}
+%v_1(\nabla \cdot D_1\nabla +\Sigma_{11}) & v_1\Sigma_{12} & \hdots  &v_1\Sigma_{1G} \\
+%v_2\Sigma_{21}        &    v_2(\nabla\cdot D_2\nabla +\Sigma_{22})            & \hdots  &v_2\Sigma_{2G} \\
+%\vdots   &   \vdots   &  \ddots  &\vdots  \\
+%v_G\Sigma_{G1}        &  v_G\Sigma_{G2} & \hdots &  v_G(\nabla \cdot D_G\nabla +\Sigma_{GG})     \\
+%\end{matrix}
+%&\begin{matrix}
+%v_1 f_{11} & \hdots &   v_1 f_{1I} \\
+%\vdots   & \ddots & \vdots \\
+%v_G f_{G1} & \hdots &   v_G f_{GI}
+%\end{matrix}
+%\\
+%\hline
+%\begin{matrix}
+%p_{11} &  &  & p_{12} & & & & \hdots  &   & p_{1G} \\
+%\vdots &  &  & & \ddots & & & \vdots&   & \vdots \\
+%p_{I1} &  &  & p_{I2} &  &   & & \hdots&  & p_{IG} 
+%\end{matrix}
+%&
+%\begin{matrix}
+%-\lambda_1 & \hdots & 0 \\
+%\vdots & \ddots  &  \vdots \\
+%0  &  \hdots  & -\lambda_I
+%\end{matrix}
+%\end{array}\right)
+%\end{equation*}
+%where 
+%\begin{subequations}
+%	\begin{equation*}
+%	\Sigma{gg^\prime} = (1 -\beta)\chi_g\nu\Sigma{fg^\prime} + \Sigma_{s_{gg^\prime}} \, ,
+%	\end{equation*}
+%	\begin{equation*}
+%	f_{ig^\prime} = \chi_g\lambda_i \, ,
+%	\end{equation*}
+%\end{subequations}
+%\vspace{-2 pt}
+%and
+%\vspace{-2 pt}
+%\begin{equation*}
+%p_{ig} = \beta_i \nu\Sigma_{fg} \, .
+%\end{equation*}
+Upon spatial discretization, the system of ODEs can be compactly represented in a block matrix form as  
+\begin{equation}
+	\frac{d\mathbf{y}(t)}{dt} = \mathbf{A}\mathbf{y}(t) \, ,
+	\label{eq:transient fom}
+\end{equation}
+where $\mathbf{y}\in\mathbb{R}^{N}$ is stacked vector of the flux and the precursors concentration, $\mathbf{A}\in\mathbb{R}^{N\times N}$ and $N = (I + G)\times n$ with $n$ is the number of spatial unknowns arising from discretization.
+The discretized block matrix $\mathbf{A}$ is written as 
+\begin{equation}
+	\mathbf{A} =  \left(\begin{array}{@{}c|c@{}}
+	\mathbf{L} & \mathbf{D} \\
+	\hline
+	\mathbf{F} & \mathbf{P}
+	\end{array}\right) \, .
+\end{equation} 
+where $\mathbf{L} \in \mathbb{R}^{(n\times G)\times (n\times G)}$ represents the diffusion operator, $\mathbf{D} \in \mathbb{R}^{(n\times G)\times (n\times I)}$ represents the delayed neutrons production operator , $\mathbf{P} \in \mathbb{R}^{(n\times I)\times ((n\times G)}$ represents the precursors loss operator and $\mathbf{F}\in \mathbb{R}^{(n\times I)\times ((n\times I)}$ represents the precursors production operator.
+%Thus, the system in Eq.~\ref{eq:transient fom} is the full-order model and it can be solved using a suitable time-scheme.
+%However, it is expensive to solve such systems for fine spatial and time grids, since a linear system of a size proportional to the spatial discretization has to be solved for each time step.
+%Hence, a reduced-order model to approximate it is justified.
+
+%--------------------------------------------------------------------------------------%
+\subsection{Benchmark Desription}
+
+The LRA benchmark employs two energy groups and two delayed precursor groups and represents a 2-D quarter-core, BWR model subject to a control-rod ejection with adiabatic heating \cite{anl}.
+A schematic layout of the problem is shown in Fig.~\ref{fig:lra core}, where region numbers indicate different materials and region R is the ejected rod.
 %To produce time-dependent snapshots, the deterministic transport code Detran\footnote{https://github.com/robertsj/libdetran} was used to solve the time-dependent diffusion equations.
 \begin{figure}[h!]
 	\centering
-	\begin{tikzpicture}[scale=0.6]	
+	\begin{tikzpicture}[scale=0.6]
+	
 	\begin{scope}<->;
 	
 	% GRID
@@ -341,42 +480,38 @@ Schematic layout of the problem is shown in Fig.~\ref{fig:lra core}, where regio
 	\caption{Schematic of LRA benchmark.}
 	\label{fig:lra core}
 \end{figure}
-The transient is initiated by a control rod ejection with constant velocity over a period of 2 seconds leading to a super-critical prompt transient, in which the power increased by about 10 orders of magnitude in a very short time.
-The control rod movement was simulated by changing the thermal absorption cross section of the control rod material.
+The transient is initiated by a control rod ejection with constant velocity over a period of 2 seconds leading to a super-critical, prompt transient, in which the power increases by about 10 orders of magnitude in a very short time.
+The control rod movement is represented by changing the thermal absorption cross section of the control rod material.
+In this application, the two-group diffusion equation represented in sec.\ref{sec:fom}, is coupled with thermal feedback through adiabatic fuel heat-up defined by
 \begin{equation}
-\sigma 
-\end{equation}
-
-Thermal feedback is incorporated through adiabatic fuel heat-up defined by
-\begin{equation}
-\frac{\partial}{\partial t}T(x,t) = \alpha[\Sigma_{f1}(x,t)\phi_1(x,t)+\Sigma_{f2}(x,t)\phi_2(x,t)] \, ,
-\label{eq:heatup}
+	\frac{\partial}{\partial t}T(x,t) = \alpha[\Sigma_{f1}(x,t)\phi_1(x,t)+\Sigma_{f2}(x,t)\phi_2(x,t)] \, ,
+	\label{eq:heatup}
 \end{equation}
 and corresponding Doppler feedback defined by
 \begin{equation}
-\Sigma_{a1}(x,t) = \Sigma_{a1}(x,t=0)[1+\gamma(\sqrt{(T(x,t)}-\sqrt{(T_0)})] \, ,
-\label{eq:doppler}
+	\Sigma_{a1}(x,t) = \Sigma_{a1}(x,t=0)[1+\gamma(\sqrt{(T(x,t)}-\sqrt{(T_0)})] \, ,
+	\label{eq:doppler}
 \end{equation}
-where $\Sigma_{f_i}$ is the fission cross section of group $i$, $T$ is the temperature,  $\Sigma_{a1}$ is the fast absorption cross section and  $T_0$ is the initial temperature which is $300 $ K,
-$\alpha = 3.83\times 10^{-11}~\text{K}.\text{cm}^3$ and $\gamma = 3.034\times 10^{-3} ~\text{K}^{-0.5}$.\\
-The power is computed as
+where $\Sigma_{f_i}$ is the fission cross section of group $i$, $T$ is the temperature, $\Sigma_{a1}$ is the fast absorption cross section and $T_0$ is the initial temperature which is $300 $ K,
+$\alpha = 3.83\times 10^{-11}~\text{K}~\text{cm}^3$ and $\gamma = 3.034\times 10^{-3} ~\text{K}^{-0.5}$.
+The power local is computed as
 \begin{equation}
-P(x,t)=\kappa [\Sigma_{f1}(x,t)\phi_1(x,t)+\Sigma_{f2}(x,t)\phi_2(x,t)] \, ,
+	P(x,t)=\kappa [\Sigma_{f1}(x,t)\phi_1(x,t)+\Sigma_{f2}(x,t)\phi_2(x,t)] \, ,
 \end{equation}
-where $\kappa = 3.204\times 10^{-11}~ \text{Ws/fission}$.
-The model was implemented in the deterministic transport code Detran~\cite{roberts2014advanced}.  
-A mesh-centered, finite-volume discretization was used for the spatial dicretization, while a first-order, backward-difference temporal discretization was used with a fixed 0.001 s step size.  
-The initial condition for the transient was computed by solving the steady-state equation, for which the $k_{\text{eff}}$ was found to be 0.9975.
-Note that at each time step the fast absorption cross section is a function of the solution itself, hence a fixed point non-linear iteration is employed.
-A convergence criteria is used such that the $\text{L}_2$ norm  of the relative flux error between two consecutive iterations is less than $1\times 10^{-6}$,
-
+where $\kappa = 3.204\times 10^{-11}~ \text{W/fission}$.
+The model was implemented in the deterministic transport code Detran~\cite{roberts2014advanced}.
+A mesh-centered, finite-difference discretization was used in space, while a first-order, backward-difference temporal discretization was used with a fixed 0.001 s step size.  
+The initial condition for the transient was computed by solving the steady-state equation, for which $k_{\text{eff}}$ was found to be 0.9975.
+Note that at each time step the fast absorption cross section is a function of the solution itself.
+The convergence criterion used to reduce the $\text{L}_2$ norm  of the relative flux error between two consecutive iterations to less than $1\times 10^{-6}$, or
 \begin{equation}
-\|\frac{\mathbf{\Phi}^{i+1} - \mathbf{\Phi}^{i}} {\mathbf{\Phi}^i}\| \le  1\times 10^{-6} \, , 
+	\|\frac{\mathbf{\Phi}^{i+1} - \mathbf{\Phi}^{i}} {\mathbf{\Phi}^i}\| \le  1\times 10^{-6} \, ,
+	\label{eq:convergance criteria} 
 \end{equation}
 where the superscript $i$ denotes the iteration number.
 The transient was calculated for 3.0 seconds.
-Figure~\ref{fig:lra fom power} shows the reference full-order model power along with the core average temperature, while Figure \ref{fig:lra ss flux} shows the steady state group flux distribution.
-This reference solution is not numerically converged in either the space or the time but it represents the simulation response that one wish to approximate.
+Figure~\ref{fig:lra fom power} shows the reference full-order model power along with the core average temperature, while Figure \ref{fig:lra ss flux} shows the steady-state group flux distribution.
+This reference solution is not necessarily numerically converged in either space or time but represents the simulation response that one wishes to approximate.
 \begin{figure}[h!]
 	\includegraphics[width=1.0\linewidth]{../figures/LRA_fom_power_temperature.pdf}
 	\caption{LRA core power}
@@ -395,40 +530,42 @@ This reference solution is not numerically converged in either the space or the 
 %		\caption{Steady state thermal flux.}
 %		\label{fig:ss thermal flux}
 %	\end{subfigure}
-%	\caption{Steady state group flux $(\text{neutrons}.\text{cm}^2/s)$}
+%	\caption{Steady state group flux $(\text{neutrons} ~\text{cm}^2/s)$}
 %	\label{fig:lra ss flux}
 %\end{figure}
 
-
-\begin{table}[h!]
-	\centering
-	\begin{tabular}{l|l|l|l| l|l}
-		material & group  & $D$ (cm) & $\Sigma_{a} ~ (\text{cm}^{-1})$ & $\Sigma_{s2\gets 1}~ (\text{cm}^{-1})$ & $\nu\Sigma_{f}~ (\text{cm}^{-1})$ \\\hline
-		\multirow{2}{*}{1}& 1   & 1.255  &  0.008252   &  \multirow{2}{*}{0.02533} & 0.004602 \\	
-		& 2   & 0.211  &  0.1003     &           & 0.1091  \\
-		\hline
-		
-		\multirow{2}{*}{2}& 1   & 1.268  &  0.007181    & \multirow{2}{*}{0.02767} & 0.004609 \\	
-		& 2   & 0.1902 &  0.07047     &           &  0.08675\\
-		\hline
-		
-		\multirow{2}{*}{3}& 1   & 1.259  &  0.008002    & \multirow{2}{*}{0.02617}     & 0.004663 \\	
-		& 2   & 0.2091 &  0.08344     &    &    0.1021 \\
-		\hline
-		\multirow{2}{*}{4}& 1   & 1.259  &  0.008002    & \multirow{2}{*}{0.02617}  &  0.004663 \\	
-		& 2   & 0.2091 &  0.073324    &           &  0.1021   \\
-		\hline
-		\multirow{2}{*}{5}& 1   & 1.257  &  0.0006034   &  \multirow{2}{*}{0.04754}  & 0.0 \\	
-		& 2   & 0.1592 &   0.01911    &        & 0.0 \\
-		\hline
-	\end{tabular}
-	{\raggedright $v_1 = 3\times10^{7} ~\text{cm/sec}. $,  $v_2 = ~3\times10^{5} \text{cm.sec}.$  \par}
-	\caption{Two group constants of the TWIGL benchmark.}
-	\label{tab:twogroup}
+\begin{table}[H]
+	\begin{threeparttable}	
+		\centering
+		\begin{tabular}{c|l|l|l|l|l}
+			material & group  & $D$ (cm) & $\Sigma_{a} ~ (\text{cm}^{-1})$ & $\Sigma_{s2\gets 1}~ (\text{cm}^{-1})$ & $\nu\Sigma_{f}~ (\text{cm}^{-1})$ \\
+			\hline
+			\multirow{2}{*}{1}& 1   & 1.255  &  0.008252   & 0.004602 &  \multirow{2}{*}{0.02533} 	\\
+			& 2   & 0.211  &  0.1003     &  0.1091  &  \\
+			\hline
+			\multirow{2}{*}{2}& 1   & 1.268  &  0.007181    & 0.004609  & \multirow{2}{*}{0.02767}  \\	
+			& 2   & 0.1902 &  0.07047     & 0.08675   &  \\
+			\hline
+			
+			\multirow{2}{*}{3}& 1   & 1.259  &  0.008002    & 0.004663 & \multirow{2}{*}{0.02617} \\	
+			& 2   & 0.2091 &  0.08344     &   0.1021 &                          \\
+			\hline
+			\multirow{2}{*}{4}& 1   & 1.259  &  0.008002    & 0.004663 &  \multirow{2}{*}{0.02617} \\	
+			& 2   & 0.2091 &  0.073324    & 0.1021   &                           \\
+			\hline
+			\multirow{2}{*}{5}& 1   & 1.257  &  0.0006034   &   0.0    & \multirow{2}{*}{0.04754}\\	
+			& 2   & 0.1592 &   0.01911    &   0.0    &  \\
+			\hline
+		\end{tabular}
+		\begin{tablenotes}
+			\item $v_1 = 3\times10^{7} ~\text{cm/s} $,  $v_2 = ~3\times10^{5} \text{cm/s}.$.
+		\end{tablenotes}
+	\end{threeparttable}
+	\caption{Two group constants of the LRA benchmark.}
 \end{table}
 
 
-\begin{table}[h!]
+\begin{table}[H]
 	\centering
 	\begin{tabular}{c|l|l}
 		group & $\beta_i$  & $\lambda_i$ ($s^{-1}$)  \\
@@ -437,13 +574,16 @@ This reference solution is not numerically converged in either the space or the 
 		2    &  0.001087 & 1.35  \\
 		\hline
 	\end{tabular}
-	\caption{Delayed neutron data.}
+	\caption{Delayed neutron data of the LRA benchmark.}
 	\label{tab:precursor data}
 \end{table}
 
+%--------------------------------------------------------------------------------------------------------------%
 
-\section{ROM}
+\section{ROM }
 \subsection{ROM Implementation}
+
+
 
 Using the POD-Galerkin projection, a ROM was constructed to approximate the group flux and the core power of the LRA benchmark.
 As discussed in the previous chapter, the time-dependent diffusion equation coupled with the precursors group equation can be cast into a compact form as in Eq.~\ref{eq:transient fom}.
@@ -938,202 +1078,204 @@ References should be cited in accordance with US National Library of Medicine (N
 Each bibliographic entry has a key, which is assigned by the author and is used to refer to that entry in the text. In this document, the key \verb"Jen05" in the citation form \verb"\cite{Jen05}" produces `\cite{Jen05}', and the keys \verb"{Sch02,Wen95}" in the citation form \verb"\cite{Sch02,Wen95}" produce `\cite{Sch02,Wen95}'. The citation for a range of bibliographic entries (e.g.\ `\cite{Sha78,AG98,Smi75,Men05,DCK03,Hor98,Ant03,Zha05,Rog05,SRW05}') will automatically be produced by  \verb"\cite{Sha78,AG98,Smi75,Men05,DCK03,Hor98,Ant03,Zha05,Rog05,SRW05}". Optional notes may be included at the beginning and/or end of a citation by the use of square brackets, e.g.\ \verb"\cite[cf.][]{Gau05}" produces `\cite[cf.][]{Gau05}', \verb"\cite[p.356]{BGC04}" produces `\cite[p.356]{BGC04}', and \verb"\cite[see][p.73-–77]{PI51}" produces `\cite[see][p.73--77]{PI51}'.
 
 
-\subsection{The list of references}
+%\subsection{The list of references}
+%
+%References should be listed at the end of the main text in the order in which they are first cited in the text. The following list shows some sample references prepared in the Taylor \& Francis NLM style.
+%
+%\bibliography{references}
+%
+%\begin{thebibliography}{99}
+%
+%\bibitem{Jen05}%1
+%Jenkins~PF. Making sense of the chest x-ray: a hands-on guide. New York (NY):
+%  Oxford University Press; 2005.
+%
+%\bibitem{Sch02}%2
+%Schott~J, Priest~J. Leading antenatal classes: a practical guide. 2nd ed.
+%  Boston (MA): Books for Midwives; 2002.
+%
+%\bibitem{Wen95}%3
+%Wenger~NK, Sivarajan~Froelicher~E, Smith~LK, et~al. Cardiac rehabilitation.
+%  Rockville (MD): Agency for Health Care Policy and Research (US); 1995.
+%
+%\bibitem{Sha78}%4
+%Shakelford~RT. Surgery of the alimentary tract. Philadelphia (PA): W.B.
+%  Saunders; 1978. Chapter 2, Esophagoscopy; p. 29--40.
+%
+%\bibitem{AG98}%5
+%Ambudkar~SV, Gottesman~MM, editors. {ABC} transporters: biomedical, cellular,
+%  and molecular aspects. San Diego (CA): Academic Press; 1998. (Methods in
+%  enzymology; vol. 292).
+%
+%\bibitem{Smi75}%6
+%Smith~CE. The significance of mosquito longevity and blood-feeding behaviour in
+%  the dynamics of arbovirus infections. Med Biol. 1975;53:288--294.
+%
+%\bibitem{Men05}%7
+%Meneton~P, Jeunemaitre~X, de~Wardener~HE, et~al. Links between dietary salt
+%  intake, renal salt handling, blood pressure, and cardiovascular diseases.
+%  Physiol Rev. 2005 Apr;85:679--715.
+%
+%\bibitem{DCK03}%8
+%Dostorovsky~JO, Carr~DB, Koltzenburg~M, editors. Proceedings of the 10th World
+%  Congress on Pain; 2002 Aug~17--22; San Diego, CA. Seattle: IASP Press; c2003.
+%
+%\bibitem{Hor98}%9
+%Horrobin~DF, Lampinskas~P. The commercial development of food plants used as
+%  medicines. In: Prendergast~HD, Etkin~NL, Harris~DR, et~al., editors. Plants
+%  for food and medicine. Proceedings of the Joint Conference of the Society for
+%  Economic Botany and the International Society for Ethnopharmacology; 1996
+%  Jul~1--6; London. Kew (UK): Royal Botanic Gardens; 1998. p. 75--81.
+%
+%\bibitem{Ant03}%10
+%Antani~S, Long~LR, Thoma~GR, et~al. Anatomical shape representation in spine
+%  x-ray images. Paper presented at: VIIP 2003. Proceedings of the 3rd IASTED
+%  International Conference on Visualization, Imaging and Image Processing;
+%  2003 Sep~8--10; Benalmadena, Spain.
+%
+%\bibitem{Zha05}%11
+%Zhao~C. Development of nanoelectrospray and application to protein research and
+%  drug discovery [dissertation]. Buffalo (NY): State University of New York at
+%  Buffalo; 2005.
+%
+%\bibitem{Rog05}%12
+%Roguskie~JM. The role of \emph{Pseudomonas aeruginosa} 1244 pilin glycan in
+%  virulence [master's thesis]. [Pittsburgh (PA)]: Duquesne University; 2005.
+%
+%\bibitem{SRW05}%13
+%Savage~E, Ramsay~M, White~J, et~al. Mumps outbreaks across England and Wales
+%  in 2004: Observational study. BMJ. 2005;330(7500):1119--1120 [cited 2005
+%  May~31]; Available from: http://bmj.bmjjournals.com/cgi/reprint/330/7500/1119.
+%
+%\bibitem{Gau05}%14
+%Gaul~G. When geography influences treament options. Washington Post (Maryland
+%  Ed.). 2005 Jul~24;Sect.~A:12 (col.~1).
+%
+%\bibitem{BGC04}%15
+%Berrino~F, Gatta~G, Crosignani~P. [Case-control evaluation of screening
+%  efficacy]. Epidemiol Prev. 2004 Nov--Dec;28:354--359. Italian.
+%
+%\bibitem{PI51}%16
+%Piaget~J, Inhelder~B. La gen{\`e}se de l'id{\'e}e de hasard chez l'enfant
+%  [The origin of the idea of chance in the child]. Paris: Presses
+%  Universitaires de France; 1951.
+%  
+% \bibitem{elzohery-greedyPOD}
+% Elzohery, Rabab and Roberts, Jeremy [Modeling neutronic transients with Galerkin projection onto a greedy-sampled, POD subspace]. Annals of Nuclear Energy; 2021.
 
-References should be listed at the end of the main text in the order in which they are first cited in the text. The following list shows some sample references prepared in the Taylor \& Francis NLM style.
 
-\begin{thebibliography}{99}
-
-\bibitem{Jen05}%1
-Jenkins~PF. Making sense of the chest x-ray: a hands-on guide. New York (NY):
-  Oxford University Press; 2005.
-
-\bibitem{Sch02}%2
-Schott~J, Priest~J. Leading antenatal classes: a practical guide. 2nd ed.
-  Boston (MA): Books for Midwives; 2002.
-
-\bibitem{Wen95}%3
-Wenger~NK, Sivarajan~Froelicher~E, Smith~LK, et~al. Cardiac rehabilitation.
-  Rockville (MD): Agency for Health Care Policy and Research (US); 1995.
-
-\bibitem{Sha78}%4
-Shakelford~RT. Surgery of the alimentary tract. Philadelphia (PA): W.B.
-  Saunders; 1978. Chapter 2, Esophagoscopy; p. 29--40.
-
-\bibitem{AG98}%5
-Ambudkar~SV, Gottesman~MM, editors. {ABC} transporters: biomedical, cellular,
-  and molecular aspects. San Diego (CA): Academic Press; 1998. (Methods in
-  enzymology; vol. 292).
-
-\bibitem{Smi75}%6
-Smith~CE. The significance of mosquito longevity and blood-feeding behaviour in
-  the dynamics of arbovirus infections. Med Biol. 1975;53:288--294.
-
-\bibitem{Men05}%7
-Meneton~P, Jeunemaitre~X, de~Wardener~HE, et~al. Links between dietary salt
-  intake, renal salt handling, blood pressure, and cardiovascular diseases.
-  Physiol Rev. 2005 Apr;85:679--715.
-
-\bibitem{DCK03}%8
-Dostorovsky~JO, Carr~DB, Koltzenburg~M, editors. Proceedings of the 10th World
-  Congress on Pain; 2002 Aug~17--22; San Diego, CA. Seattle: IASP Press; c2003.
-
-\bibitem{Hor98}%9
-Horrobin~DF, Lampinskas~P. The commercial development of food plants used as
-  medicines. In: Prendergast~HD, Etkin~NL, Harris~DR, et~al., editors. Plants
-  for food and medicine. Proceedings of the Joint Conference of the Society for
-  Economic Botany and the International Society for Ethnopharmacology; 1996
-  Jul~1--6; London. Kew (UK): Royal Botanic Gardens; 1998. p. 75--81.
-
-\bibitem{Ant03}%10
-Antani~S, Long~LR, Thoma~GR, et~al. Anatomical shape representation in spine
-  x-ray images. Paper presented at: VIIP 2003. Proceedings of the 3rd IASTED
-  International Conference on Visualization, Imaging and Image Processing;
-  2003 Sep~8--10; Benalmadena, Spain.
-
-\bibitem{Zha05}%11
-Zhao~C. Development of nanoelectrospray and application to protein research and
-  drug discovery [dissertation]. Buffalo (NY): State University of New York at
-  Buffalo; 2005.
-
-\bibitem{Rog05}%12
-Roguskie~JM. The role of \emph{Pseudomonas aeruginosa} 1244 pilin glycan in
-  virulence [master's thesis]. [Pittsburgh (PA)]: Duquesne University; 2005.
-
-\bibitem{SRW05}%13
-Savage~E, Ramsay~M, White~J, et~al. Mumps outbreaks across England and Wales
-  in 2004: Observational study. BMJ. 2005;330(7500):1119--1120 [cited 2005
-  May~31]; Available from: http://bmj.bmjjournals.com/cgi/reprint/330/7500/1119.
-
-\bibitem{Gau05}%14
-Gaul~G. When geography influences treament options. Washington Post (Maryland
-  Ed.). 2005 Jul~24;Sect.~A:12 (col.~1).
-
-\bibitem{BGC04}%15
-Berrino~F, Gatta~G, Crosignani~P. [Case-control evaluation of screening
-  efficacy]. Epidemiol Prev. 2004 Nov--Dec;28:354--359. Italian.
-
-\bibitem{PI51}%16
-Piaget~J, Inhelder~B. La gen{\`e}se de l'id{\'e}e de hasard chez l'enfant
-  [The origin of the idea of chance in the child]. Paris: Presses
-  Universitaires de France; 1951.
-  
- \bibitem{elzohery-greedyPOD}
- Elzohery, Rabab and Roberts, Jeremy [Modeling neutronic transients with Galerkin projection onto a greedy-sampled, POD subspace]. Annals of Nuclear Energy; 2021.
-
-
-\end{thebibliography}
-\bigskip
-\noindent This was produced by typing:
-\begin{verbatim}
-\begin{thebibliography}{99}
-
-\bibitem{Jen05}%1
-Jenkins~PF. Making sense of the chest x-ray: a hands-on guide. New York
- (NY): Oxford University Press; 2005.
-
-\bibitem{Sch02}%2
-Schott~J, Priest~J. Leading antenatal classes: a practical guide. 2nd
- ed. Boston (MA): Books for Midwives; 2002.
-
-\bibitem{Wen95}%3
-Wenger~NK, Sivarajan~Froelicher~E, Smith~LK, et~al. Cardiac
- rehabilitation. Rockville (MD): Agency for Health Care Policy and
- Research (US); 1995.
-
-\bibitem{Sha78}%4
-Shakelford~RT. Surgery of the alimentary tract. Philadelphia (PA):
- W.B. Saunders; 1978. Chapter 2, Esophagoscopy; p. 29--40.
-
-\bibitem{AG98}%5
-Ambudkar~SV, Gottesman~MM, editors. {ABC} transporters: biomedical,
- cellular, and molecular aspects. San Diego (CA): Academic Press; 1998.
- (Methods in enzymology; vol. 292).
-
-\bibitem{Smi75}%6
-Smith~CE. The significance of mosquito longevity and blood-feeding
- behaviour in the dynamics of arbovirus infections. Med Biol.
- 1975;53:288--294.
-
-\bibitem{Men05}%7
-Meneton~P, Jeunemaitre~X, de~Wardener~HE, et~al. Links between dietary
- salt intake, renal salt handling, blood pressure, and cardiovascular
- diseases. Physiol Rev. 2005 Apr;85:679--715.
-
-\bibitem{DCK03}%8
-Dostorovsky~JO, Carr~DB, Koltzenburg~M, editors. Proceedings of the
- 10th World Congress on Pain; 2002 Aug~17--22; San Diego, CA. Seattle:
- IASP Press; c2003.
-
-\bibitem{Hor98}%9
-Horrobin~DF, Lampinskas~P. The commercial development of food plants
- used as medicines. In: Prendergast~HD, Etkin~NL, Harris~DR, et~al.,
- editors. Plants for food and medicine. Proceedings of the Joint
- Conference of the Society for Economic Botany and the International
- Society for Ethnopharmacology; 1996 Jul~1--6; London. Kew (UK): Royal
- Botanic Gardens; 1998. p. 75--81.
-
-\bibitem{Ant03}%10
-Antani~S, Long~LR, Thoma~GR, et~al. Anatomical shape representation in
- spine x-ray images. Paper presented at: VIIP 2003. Proceedings of the
- 3rd IASTED International Conference on Visualization, Imaging and
- Image Processing; 2003 Sep~8--10; Benalmadena, Spain.
-
-\bibitem{Zha05}%11
-Zhao~C. Development of nanoelectrospray and application to protein
- research and drug discovery [dissertation]. Buffalo (NY): State
- University of New York at Buffalo; 2005.
-
-\bibitem{Rog05}%12
-Roguskie~JM. The role of \emph{Pseudomonas aeruginosa} 1244 pilin
- glycan in virulence [master's thesis]. [Pittsburgh (PA)]: Duquesne
- University; 2005.
-
-\bibitem{SRW05}%13
-Savage~E, Ramsay~M, White~J, et~al. Mumps outbreaks across England and
- Wales in 2004: Observational study. BMJ. 2005;330(7500):1119--1120
- [cited 2005 May 31]; Available from:
- http://bmj.bmjjournals.com/cgi/reprint/330/7500/1119.
-
-\bibitem{Gau05}%14
-Gaul~G. When geography influences treament options. Washington Post
- (Maryland Ed.). 2005 Jul~24;Sect.~A:12 (col.~1).
-
-\bibitem{BGC04}%15
-Berrino~F, Gatta~G, Crosignani~P. [Case-control evaluation of screening
- efficacy]. Epidemiol Prev. 2004 Nov--Dec;28:354--359. Italian.
-
-\bibitem{PI51}%16
-Piaget~J, Inhelder~B. La gen{\`e}se de l'id{\'e}e de hasard chez
- l'enfant [The origin of the idea of chance in the child]. Paris:
- Presses Universitaires de France; 1951.
-
-\end{thebibliography}
-\end{verbatim}
-\bigskip
-\noindent Each entry takes the form:
-\begin{verbatim}
-\bibitem{key}%n Bibliography entry
-\end{verbatim}
-where `\texttt{key}' is the tag that is to be used as an argument for the \verb"\cite{}" commands in the text of the article and `\texttt{Bibliography entry}' is the material that is to appear in the list of references, suitably formatted. The commands
-\begin{verbatim}
-\usepackage[numbers,sort&compress]{natbib}
-\bibpunct[, ]{[}{]}{,}{n}{,}{,}
-\renewcommand\bibfont{\fontsize{10}{12}\selectfont}
-\makeatletter
-\def\NAT@def@citea{\def\@citea{\NAT@separator}}
-\makeatother
-\end{verbatim}
-need to be included in the preamble of your .tex file in order to generate the citations and bibliography as described above.
-
-Instead of typing the bibliography by hand, you may prefer to create the list of references using a \textsc{Bib}\TeX\ database. The \texttt{tfnlm.bst} file needs to be in your working folder or an appropriate directory, and the lines
-\begin{verbatim}
-\bibliographystyle{tfnlm}
-\bibliography{interactnlmsample}
-\end{verbatim}
-included where the list of references is to appear, where \texttt{tfnlm.bst} is the name of the \textsc{Bib}\TeX\ bibliography style file for Taylor \& Francis' NLM reference style and \texttt{interactnlmsample.bib} is the bibliographic database included with the \textsf{Interact}-NLM \LaTeX\ bundle (to be replaced with the name of your own .bib file). \LaTeX/\textsc{Bib}\TeX\ will extract from your .bib file only those references that are cited in your .tex file and list them in the References section.
-
-Please include a copy of your .bib file and/or the final generated .bbl file among your source files if your .tex file does not contain a reference list in a \texttt{thebibliography} environment.
+%\end{thebibliography}
+%\bigskip
+%\noindent This was produced by typing:
+%\begin{verbatim}
+%\begin{thebibliography}{99}
+%
+%\bibitem{Jen05}%1
+%Jenkins~PF. Making sense of the chest x-ray: a hands-on guide. New York
+% (NY): Oxford University Press; 2005.
+%
+%\bibitem{Sch02}%2
+%Schott~J, Priest~J. Leading antenatal classes: a practical guide. 2nd
+% ed. Boston (MA): Books for Midwives; 2002.
+%
+%\bibitem{Wen95}%3
+%Wenger~NK, Sivarajan~Froelicher~E, Smith~LK, et~al. Cardiac
+% rehabilitation. Rockville (MD): Agency for Health Care Policy and
+% Research (US); 1995.
+%
+%\bibitem{Sha78}%4
+%Shakelford~RT. Surgery of the alimentary tract. Philadelphia (PA):
+% W.B. Saunders; 1978. Chapter 2, Esophagoscopy; p. 29--40.
+%
+%\bibitem{AG98}%5
+%Ambudkar~SV, Gottesman~MM, editors. {ABC} transporters: biomedical,
+% cellular, and molecular aspects. San Diego (CA): Academic Press; 1998.
+% (Methods in enzymology; vol. 292).
+%
+%\bibitem{Smi75}%6
+%Smith~CE. The significance of mosquito longevity and blood-feeding
+% behaviour in the dynamics of arbovirus infections. Med Biol.
+% 1975;53:288--294.
+%
+%\bibitem{Men05}%7
+%Meneton~P, Jeunemaitre~X, de~Wardener~HE, et~al. Links between dietary
+% salt intake, renal salt handling, blood pressure, and cardiovascular
+% diseases. Physiol Rev. 2005 Apr;85:679--715.
+%
+%\bibitem{DCK03}%8
+%Dostorovsky~JO, Carr~DB, Koltzenburg~M, editors. Proceedings of the
+% 10th World Congress on Pain; 2002 Aug~17--22; San Diego, CA. Seattle:
+% IASP Press; c2003.
+%
+%\bibitem{Hor98}%9
+%Horrobin~DF, Lampinskas~P. The commercial development of food plants
+% used as medicines. In: Prendergast~HD, Etkin~NL, Harris~DR, et~al.,
+% editors. Plants for food and medicine. Proceedings of the Joint
+% Conference of the Society for Economic Botany and the International
+% Society for Ethnopharmacology; 1996 Jul~1--6; London. Kew (UK): Royal
+% Botanic Gardens; 1998. p. 75--81.
+%
+%\bibitem{Ant03}%10
+%Antani~S, Long~LR, Thoma~GR, et~al. Anatomical shape representation in
+% spine x-ray images. Paper presented at: VIIP 2003. Proceedings of the
+% 3rd IASTED International Conference on Visualization, Imaging and
+% Image Processing; 2003 Sep~8--10; Benalmadena, Spain.
+%
+%\bibitem{Zha05}%11
+%Zhao~C. Development of nanoelectrospray and application to protein
+% research and drug discovery [dissertation]. Buffalo (NY): State
+% University of New York at Buffalo; 2005.
+%
+%\bibitem{Rog05}%12
+%Roguskie~JM. The role of \emph{Pseudomonas aeruginosa} 1244 pilin
+% glycan in virulence [master's thesis]. [Pittsburgh (PA)]: Duquesne
+% University; 2005.
+%
+%\bibitem{SRW05}%13
+%Savage~E, Ramsay~M, White~J, et~al. Mumps outbreaks across England and
+% Wales in 2004: Observational study. BMJ. 2005;330(7500):1119--1120
+% [cited 2005 May 31]; Available from:
+% http://bmj.bmjjournals.com/cgi/reprint/330/7500/1119.
+%
+%\bibitem{Gau05}%14
+%Gaul~G. When geography influences treament options. Washington Post
+% (Maryland Ed.). 2005 Jul~24;Sect.~A:12 (col.~1).
+%
+%\bibitem{BGC04}%15
+%Berrino~F, Gatta~G, Crosignani~P. [Case-control evaluation of screening
+% efficacy]. Epidemiol Prev. 2004 Nov--Dec;28:354--359. Italian.
+%
+%\bibitem{PI51}%16
+%Piaget~J, Inhelder~B. La gen{\`e}se de l'id{\'e}e de hasard chez
+% l'enfant [The origin of the idea of chance in the child]. Paris:
+% Presses Universitaires de France; 1951.
+%
+%\end{thebibliography}
+%\end{verbatim}
+%\bigskip
+%\noindent Each entry takes the form:
+%\begin{verbatim}
+%\bibitem{key}%n Bibliography entry
+%\end{verbatim}
+%where `\texttt{key}' is the tag that is to be used as an argument for the \verb"\cite{}" commands in the text of the article and `\texttt{Bibliography entry}' is the material that is to appear in the list of references, suitably formatted. The commands
+%\begin{verbatim}
+%\usepackage[numbers,sort&compress]{natbib}
+%\bibpunct[, ]{[}{]}{,}{n}{,}{,}
+%\renewcommand\bibfont{\fontsize{10}{12}\selectfont}
+%\makeatletter
+%\def\NAT@def@citea{\def\@citea{\NAT@separator}}
+%\makeatother
+%\end{verbatim}
+%need to be included in the preamble of your .tex file in order to generate the citations and bibliography as described above.
+%
+%Instead of typing the bibliography by hand, you may prefer to create the list of references using a \textsc{Bib}\TeX\ database. The \texttt{tfnlm.bst} file needs to be in your working folder or an appropriate directory, and the lines
+%\begin{verbatim}
+%\bibliographystyle{tfnlm}
+%\bibliography{interactnlmsample}
+%\end{verbatim}
+%included where the list of references is to appear, where \texttt{tfnlm.bst} is the name of the \textsc{Bib}\TeX\ bibliography style file for Taylor \& Francis' NLM reference style and \texttt{interactnlmsample.bib} is the bibliographic database included with the \textsf{Interact}-NLM \LaTeX\ bundle (to be replaced with the name of your own .bib file). \LaTeX/\textsc{Bib}\TeX\ will extract from your .bib file only those references that are cited in your .tex file and list them in the References section.
+%
+%Please include a copy of your .bib file and/or the final generated .bbl file among your source files if your .tex file does not contain a reference list in a \texttt{thebibliography} environment.
 
 
 \section{Appendices}
@@ -1180,5 +1322,6 @@ Please note that the class file calls up the open-source \LaTeX\ packages bookta
 \subsection{Via e-mail}
 
 This article template, the \texttt{interact} class file and the associated open-source \LaTeX\ packages are also available via e-mail. Requests should be addressed to \texttt{latex.helpdesk@tandf.co.uk}, clearly stating for which journal you require the template and class file.
+
 
 \end{document}
