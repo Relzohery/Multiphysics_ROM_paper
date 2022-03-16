@@ -18,7 +18,7 @@
 \usepackage{tikz}
 \usepackage{multirow}
 \usepackage{booktabs,tabularx}
-\usepackage{subcaption}
+%\usepackage{subcaption}
 \DeclareMathOperator{\argmaxH}{argmax} 
 \DeclareMathOperator*{\argmin}{argmin}
 \renewcommand{\algorithmicrequire}{\textbf{Input:}}
@@ -61,19 +61,21 @@
 }
 
 \maketitle
-
 \begin{abstract}
-Presented here is an application of model-order reduction to non-linear neutronic transients, where reduced-order models (ROMs) are generally sought to provide a rapid and accurate approximation of a particular simulation solution.
-The ROM was built with the use of the POD-Galerkin projection method, where the main contribution of this work is the employment of the matrix version of the Discrete Empirical Interpolation Method (MDEIM) to improve the ROM efficiency.
-The MDEIM is used to approximate the projection of the problem operator that otherwise is required to be computed at each non-linear iteration within each time step, increasing the ROM cost.
+Presented here is an application of model-order reduction to non-linear neutronic transients.
+% where reduced-order models (ROMs) are generally sought to provide a rapid, yet accurate, approximation of a particular simulation response.
+The effort described extends previous work\cite{elzohery2021modeling} aimed to develop and assess a ROM framework that can be used for different purposes, such as design optimization and propagating input parameter uncertainties like nuclear data.
+Here, the target applications here is non-linear.
+The ROM was built with the use of the POD-Galerkin projection method and the matrix version of the Discrete Empirical Interpolation Method (MDEIM) for improved efficiency.
+The MDEIM is used to approximate the projection of the problem operator that otherwise must be computed at each non-linear iteration within each time step, which increases the ROM cost.
 By using the MDEIM, an offline-online ROM decomposition was obtained, which is favored from a computational perspective since the expensive projection operation can take place only once in the offline stage.
 The online stage, which involves solving a linear system  at each time step, depends only on the reduced dimension and is therefore cheap, making it possible to increase the solution time resolution, and accordingly accuracy, without introducing significant cost.
-By applying the method to the LRA benchmark, speeds up that range from 6 to 40 was achieved depending on the full-order model (FOM) spatial fidelity.
+By applying the method to the LRA benchmark, speed ups from 6 to 40 were achieved depending on the full-order model (FOM) spatial fidelity.
 The maximum relative error in the assemblies power was in the order of $1\times10^{-5}$\%.
-Moreover, the ROM was parameterized by using a POD-greedy sampling and a case study was tested where the kinetic data. i.e, the precursors decay constant and delayed neutron fraction, are assumed to be the parameters of interest.
-For the parameterized ROM, the maximum relative error in the assembly power was  \% ., which indicates that the developed ROM can be reliably used in parametric and uncertainty quantification studies.
-The computational gain from the MDEIM-ROM was compared with that of a direct projection ROM and showed that employing the MDEIM is computationally advantageous and becomes even more appreciable with higher-dimensional problems.
-The method was implemented in the open-source deterministic transport code Detran where only access to the system operator was needed to construct the ROM, and hence the method is considered trivially invasive and could be implemented in modern deterministic transport codes.
+Moreover, the ROM was parameterized by POD-greedy sampling, and a case study was performed where the kinetic data, i.e, the precursor decay constants and delayed-neutron fraction were assumed to be the model parameters of interest.
+For the parameterized ROM, the maximum relative error in the assembly power was $1\times 10^{-3}$\%, which implies that the developed ROM can be reliably used to accelerate parametric and uncertainty quantification studies involving non-linear problems.
+The computational gain from the MDEIM-ROM was compared with that of a direct projection ROM and showed that employing the MDEIM is computationally advantageous, and the advantage grows with dimension of the problem.
+The method was implemented in the open-source deterministic transport code Detran\cite{roberts2014advanced} where only access to the system operator was needed to construct the ROM, and; hence, the method is trivially invasive and could easily be implemented in many modern deterministic diffusion codes.
 
 
 \end{abstract}
@@ -84,16 +86,15 @@ Galerkin projection; POD; Non-linear reduced-order models; Neutronic Transient; 
 
 
 \section{Introduction}
-
-Modeling and simulation of reactor physics is crucial to understand nuclear reactors behavior under different conditions and scenarios and hence ensure reliable design and well established safety limits.
-The mathematical models governing the reactor physics are described by a set of equations that is challenging to solve analytically due to the geometric complexity of nuclear reactors except for simplified cases.
-Alternatively, these systems are solved by employing numerical discretization that rely on discretizing the system along each independent variable and the solution is provided only on these discrete points.
+Modeling and simulation of reactor physics is crucial to understanding nuclear reactors' behavior under different conditions and scenarios and hence ensure reliable designs and well-established safety limits.
+The mathematical models governing reactor physics are described by a set of equations that are challenging to solve analytically due to the geometric complexity of nuclear reactors except for simplified cases.
+Alternatively, these systems are solved by employing numerical discretization that relies on discretizing the system along each independent variable and the solution is provided only on these discrete points.
 To improve the method accuracy, the system needs to be solved over a very fine mesh.
 Although this results in a more reliable solution, it leads to a growing space dimension and accordingly large computational cost.
 This problem of the computational cost becomes inevitably prohibitive with applications that require repetitive execution of the simulation such as uncertainty quantification, and design optimization.
 In such studies, the high-fidelity model has to be solved at multiple parameter points which could be very large.
 Hence, surrogate models that are cheap, yet accurate, are sought to provide a rapid and reliable approximation of the solution of these systems.
-The premise is that this lower-order model will capture the essential features of the system  and preserve the input-output mapping as much as possible.
+The premise is that this lower-order model will capture the essential features of the system and preserve the input-output mapping as much as possible.
 
 In the application of our interest here, neutronic transients, the mathematical models are based on the diffusion approximation and the Boltzmann transport equation.
 For realistic modeling, these neutron transport models need to be coupled with different physics models to account for their feedback.
@@ -109,14 +110,15 @@ One drawback of operator splitting is that time integration requires small steps
 Alternatively, tight coupling in time between the physics can be maintained by using an implicit scheme that solves a non-linear iteration in each time step, also increasing the computational time.
 A modern algorithm such as Jacobian free Newton-Krylov (JFNK) \cite{gaston2009parallel} can be used to perform this implicit coupling.
 Another popular approach is to use fixed-point iteration, with an implicit time scheme to iterate between difference physics within a time step until convergence is satisfied, which is computationally taxing.
-The aim of this work is to use a reduce-order model to overcome the high computational expense of these non-linear models.
+The aim of this work is to use a reduced-order model to overcome the high computational expense of these non-linear models.
 In particular, the ROM was developed using the POD-Galerkin projection.
-The method belongs to the projection-based family, and can be described as a physics-driven method since it requires knowledge of the original governing equation as will be shown in Sec.\ref{sec:POD}.
-In a previous work \cite{elzohery2021modeling}, we applied the method to time dependent diffusion equation where there was no coupling with other models and hence the application was linear.
+The method belongs to the projection-based family and can be described as a physics-driven method since it requires knowledge of the original governing equation as will be shown in Sec.\ref{sec:POD}.
+In a previous work \cite{elzohery2021modeling}, we applied the method to the time-dependent diffusion equation where there was no coupling with other models and hence the application was linear.
 In this study, the developed ROM was extended to treat the non-linearity induced by multi-physics modeling.
-To improve the computational efficiency of the developed ROM, a hyper-reduction technique known as the Discrete Empirical Interpolation Method (DEIM) was used in conjunction of the POD-Galerkin projection.
+To improve the computational efficiency of the developed ROM, a hyper-reduction technique known as the Discrete Empirical Interpolation Method (DEIM) was used in conjunction with the POD-Galerkin projection.
 The primary purpose of using the DEIM is to obtain an offline-online decomposition of the ROM to avoid repetitive projection of the problem operator at each iteration within the time step.
-The offline stage occurs only once and it comprises the expensive step of the ROM, where the online stage is cheaper and involves solving a reduced number of equation at each time step.
+The offline stage occurs only once and comprises the expensive step of the ROM.
+On the other hand, the online stage involves solving a reduced number of equations at each time step with a computational cost independent of the FOM dimension and hence cheaper.
 The LRA benchmark was used as a demonstrative application where the diffusion equation is coupled with a simplified thermal feedback model.
 
 %The following discussion include a general overview of the methods and algorithms, then the specific application was described after which its results are presented. 
@@ -130,30 +132,30 @@ In this section, the methods used throughout the study are described, including 
 
 \subsection{POD-Galerkin Projection}\label{class}
 
-Consider the following dynamic system that results from discretizing a partial differential equation using a numerical scheme such as the finite difference method:
+Consider the following dynamic system that results from the discretization a partial differential equation using, e.g, the finite-difference method:
 \begin{equation}
 	\frac{d\mathbf{y}(t)}{dt} = \mathbf{A}\mathbf{y}(t) + \mathbf{f}(\mathbf{y}(t)),  \quad\quad \mathbf{y(0) = \mathbf{y_0}} \, ,
 	\label{eq:FOM}
 \end{equation}
 where $\mathbf{y} \in \mathbb{R}^{n}$ is the state variable and $\mathbf{A} \in \mathbb{R}^{n\times n}$ is the operator resulting from the system discretization.
 In general, this method involves two main steps.
-First, a subspace is obtained using the proper orthogonal decomposition, i.e, POD \cite{}, a widely used reduction technique.
-Commonly, the POD subspace is generated using the snapshots method \cite{} by constructing a data matrix $\mathbf{Y}$ containing the system solutions at different time instances, then the singular value decomposition (SVD) is computed, i.e $\mathbf{Y} = \mathbf{U}\mathbf{\Sigma}\mathbf{V}$.
+First, a subspace is obtained using proper orthogonal decomposition (POD)\cite{volkwein2011model}.
+Commonly, the POD subspace is generated using the snapshots method \cite{sirovich1987turbulence} by constructing a data matrix $\mathbf{Y}$ containing the system solutions at different times of which the singular value decomposition (SVD) is computed, i.e, $\mathbf{Y} = \mathbf{U}\mathbf{\Sigma}\mathbf{V}^T$.
 The POD subspace is the one spanned by the first $r$ vectors of $\mathbf{U}$, where $r \ll n$.
-There is no general \textit{a priori} rule based on which the rank $r$ is chosen; however one can set a threshold $\epsilon$  such that
+There is no general \textit{a priori} rule based on which the rank $r$ is chosen; however, one can set a threshold $\epsilon$  such that
 \begin{equation}
 	\frac{\sum_{i=0}^r S_i}{\sum_{i=0}^m S_i} \ge \epsilon \, ,
 \end{equation}
-where S$i$ is the $i$th singular value.
+where S$_i$ is the $i$th singular value and the singular values are the elements of the diagonal matrix $\mathbf{\Sigma}$.
 Upon obtaining the reduced space, the state variable $\mathbf{y}$ is expanded in terms of its basis
 \begin{equation}
 	\mathbf{y} \approx \mathbf{U} \hat{\mathbf{y}}(t) \, ,
 	\label{eq:galerkin expansion}
 \end{equation}
 where $\mathbf{\hat{y}(t)} \in \mathbb{R}^{r}$ is a vector of the temporal coefficients.
-Second, the system is projected onto a POD subspace by multiplying the system on the left by $\mathbf{U}^T$ and making use of the orthogonality of the POD basis (i.e, $\mathbf{U}^T\mathbf{U} = \mathbf{I}$), we end up with 
+Second, the system is projected onto a POD subspace by multiplying the system on the left by $\mathbf{U}^T$ and making use of the orthogonality of the POD basis (i.e, $\mathbf{U}^T\mathbf{U} = \mathbf{I}$), which leads to
 \begin{equation}
-	\frac{d\mathbf{\hat{y}}}{dt} = \mathbf{A}_r\mathbf{\hat{y}} + \mathbf{U}^T\mathbf{f}(\mathbf{U}\mathbf{\hat{y}}) \qquad \mathbf{\hat{y}}(0) = \mathbf{U}^T\mathbf{y}_0 \, ,
+	\frac{d\mathbf{\hat{y}}}{dt} = \mathbf{A}_r\mathbf{\hat{y}} + \mathbf{U}^T\mathbf{f}(\mathbf{U}\mathbf{\hat{y}})\, ,  \qquad \mathbf{\hat{y}}(0) = \mathbf{U}^T\mathbf{y}_0 \, ,
 	\label{eq:ROM}
 \end{equation}
 where $\mathbf{A}_r \in \mathbb{R}^{r\times r} = \mathbf{U}^T\mathbf{A}\mathbf{U}.$
@@ -165,14 +167,12 @@ Thus, we are left with $r$ ODE's instead of $n$ ODE's, which makes the resulting
 
 \label{sec:DEIM}
 Recently, the DEIM \cite{chaturantabut2010nonlinear} was proposed to approximate the non-linearity in the context of model-order reduction and to facilitate the online/offline decomposition of ROMs.
-The method is a discrete variant of the Empirical Interpolation Method (EIM) \cite{barrault2004empirical} that was originally proposed to approximate
-non-affine coefficient functions using a reduced-basis expansion to facilitate the online/offline decomposition in finite element methods.
+The method is a discrete variant of the Empirical Interpolation Method (EIM) \cite{barrault2004empirical} that was originally proposed to approximate non-affine coefficient functions using a reduced-basis expansion to facilitate the online/offline decomposition in finite-element methods.
 To illustrate the method, consider the model in Eq.\ref{eq:FOM} for which we seek an approximate ROM.
 The non-linear term $\mathbf{f}(\textbf{y}(t))$ introduces computational complexity to the ROM since computing the projected term $\mathbf{U}^T\mathbf{f}(\textbf{y}(t))$ requires reconstructing the full-order  solution first.
-The reconstruction and the projection steps have cost dependent on the dimension of the system, i.e $n$.
-The goal of using the DEIM is to avoid performing these operations at each time step and split the cost of the ROM into two steps,
-offline step where the expensive operations dependent on $n$ take place, and online step that depends only on the reduced dimension.
-The method relies on two main ingredients: (1) a reduced space that approximates the nonlinear function, and (2) a set of spatial interpolation indices.
+The reconstruction and the projection steps have costs dependent on the dimension of the system $n$.
+The goal of using the DEIM is to avoid performing these operations at each time step by splitting the ROM into two steps: an offline step in which the expensive operations dependent on $n$ are performed, and an online step in which operations depend only on the reduced dimension.
+The method relies on two main ingredients: (1) a reduced space in which nonlinear function can be approximated, and (2) a set of spatial interpolation indices.
 The nonlinear function $\mathbf{f}(\textbf{y}(t))$ is approximated by projecting it onto a subspace that approximates the function space
 \begin{equation}
 	\mathbf{f}(\textbf{y}(\tau)) = \mathbf{\Psi}\boldsymbol{\theta}(\tau)\, ,
@@ -195,11 +195,11 @@ The coefficients can be computed by solving
 	\mathbf{P}^T\mathbf{f(\tau)}=\mathbf{\Psi}_k \boldsymbol{\theta}(\tau)\, ,
 	\label{eq:DEIM coefficients}
 \end{equation}
-and the final function approximation is given by
+and the final approximation is given by
 \begin{equation}
 	\hat{\mathbf{f}}(\tau)\approx\mathbf{\Psi}( \mathbf{\Psi}_k)^{-1}\mathbf{P}^T\mathbf{f} (\tau)\, .
 \end{equation}
-A key point relevant to the computational efficiency of the method is that the matrix $\mathbf{P}$ does not need to be constructed explicitly, since the term $\mathbf{P}^T\mathbf{f}$ extracts only the elements of $\mathbf{f}$ that correspond to the interpolation indices.
+A key point relevant to the computational efficiency of the method is that the matrix $\mathbf{P}$ does not need to be constructed explicitly since the term $\mathbf{P}^T\mathbf{f}$ extracts only the elements of $\mathbf{f}$ that correspond to the interpolation indices.
 Thus, at each time step, only $k$ elements $\mathbf{f}$ need to be evaluated.
 %The approximation error can be bounded as 
 %\begin{equation}
@@ -213,13 +213,13 @@ Thus, at each time step, only $k$ elements $\mathbf{f}$ need to be evaluated.
 %Full derivation of the error bound is given in Ref.~\cite{chaturantabut2010nonlinear}.
 
 Now, the projection can be performed by computing the term $\mathbf{U}^T \mathbf{\Psi}$ once in an offline stage, while in the online stage, the vector $\boldsymbol{\theta}$ is computed by solving the linear system of dimension $k$ in Eq.~\ref{eq:DEIM coefficients}.
-Thus, the cost of the online computation depends on the reduced dimension $k$, not the original, high dimension $n$.
+Thus, the cost of the online computation depends on the reduced dimension $k$, not the original, larger dimension $n$.
 
 Although the problem tackled here does not include a non-linear term, the DEIM idea is exploited to approximate time-dependent operators to avoid computing the projected operator $\mathbf{A}_r(t)$ at each time step, which requires number of FLOPS dependent on $n$.
 This is known as the matrix version of the DEIM, i.e, MDEIM and it was suggested in \cite{carlberg2012efficient, benner2015survey}.
 To illustrate, consider the operator $\mathbf{A}(\boldsymbol{t}) \in \mathbb{R}^{n\times n}$.
 The DEIM procedures can be used to approximate the operator by a summation of few time independent matrices, each weighted by a temporal coefficient.
-First, the matrix can be cast in a vector form by stacking all of its nonzero elements in one vector $\mathbf{a}(t) \in \mathbb{R}^{n^2}$.
+First, the matrix can be cast in a vector form by stacking its elements in one vector $\mathbf{a}(t) \in \mathbb{R}^{n^2}$.
 This vector can be treated in the same exact way as the function $\mathbf{f}(t)$ in the previous section, i.e, $\mathbf{a}(\mu) = \mathbf{\Psi}\boldsymbol{\theta}(t)$.
 Snapshots of the serialized matrix are collected at different time instances and the reduced subspace $\mathbf{\Psi}$ and the interpolation indices are computed following algorithm \ref{alg:DEIM}.
 Again, the corresponding coefficients are obtained by solving Eq.~\ref{eq:DEIM coefficients}. 
@@ -236,14 +236,17 @@ As pointed out in Ref.\cite{negri2015efficient}, the Weyl\textendash Mirsky theo
 where $\sigma_i$ and $\hat{\sigma_i}$ denote the $i$th singular value of $\mathbf{A}$ and $\hat{\mathbf{A}}$ respectively.
 %Moreover, some properties of the original matrix such as positive definiteness can be preserved \cite{carlberg2015preserving}, if necessary, by imposing some constrains to the problem in Eq.~\ref{eq:DEIM coefficients}.
 
-In the practical implementations, the method efficiency can be improved, as suggested in Ref. \cite{negri2015efficient}.
+In practical implementations, the method efficiency can be improved, as suggested in Ref. \cite{negri2015efficient}.
 First, the matrix $\mathbf{A}$ is, generally, largely sparse, which leads to a snapshots matrix that is sparse, too.
 Consequently, it is more convenient to store only the nonzero elements ($nz$) in $\mathbf{a}$, 
 which should be appreciably more efficient in terms of memory and computational expense.
-In addition, to obtain the expansion coefficients ($\boldsymbol{\theta}$), the term $\mathbf{P}^T\mathbf{a(t)}$ needs to be computed at each new parameter value.
+In addition, to obtain the expansion coefficients ($\boldsymbol{\theta}$), the term $\mathbf{P}^T\mathbf{a(t)}$ needs to be computed at each new time step.
 In fact, this term only extracts the elements of $\mathbf{a(t)}$ that corresponds to the selected  interpolation indices.
 In the offline stage, a mapping can be done between these interpolation indices and the corresponding row-column pairs in $\mathbf{A}$.
 When the matrix is formed in the online stage, only these entries are evaluated by restricting a \textit{for loop} over these row-column pairs, leading to more reduction in the computational cost.
+
+For the rest of this paper, we will refer to the ROM with MDEIM as the MDEIM-ROM, while we refer to the model in Sec.~\ref{sec:POD} as the direct projection ROM.
+
 
 \noindent\begin{minipage}{\textwidth}
 	\renewcommand\footnoterule{}
@@ -253,7 +256,7 @@ When the matrix is formed in the online stage, only these entries are evaluated 
 		\begin{algorithmic}[1]
 			\REQUIRE Snapshots matrix: $\mathbf{X} = [\mathbf{f}_1, \mathbf{f}_2,  ...., \mathbf{f}_m] \in \mathbb{R}^{n\times m}$
 			\ENSURE A reduced space $\mathbf{\Psi}$, set of indices $\mathcal{I}$
-			\STATE $[\mathbf{\Psi}_1, \mathbf{\Psi}_2, ..., \mathbf{\Psi}_k ]$ = POD(${\mathbf{X}}, \epsilon$)\footnote{POD refers to Algorithm \ref{alg:pod}}
+			\STATE $[\mathbf{\Psi}_1, \mathbf{\Psi}_2, ..., \mathbf{\Psi}_k ]$ = POD(${\mathbf{X}}, \epsilon$)\footnote{POD refers to the POD procedures in Sec.~\ref{sec:POD}}
 			\STATE $\mathcal{I}_1 = \argmaxH(\abs{\mathbf{\Psi}_1})$, $\mathcal{I}$ = $\{\mathcal{I}_1\}$
 			\STATE $\mathbf{\Psi} = [\mathbf{\Psi}_1]$, $\mathbf{P} =[e_{I_1}]$
 			\FOR {i=2 \TO i=k }
@@ -274,13 +277,14 @@ A greedy sampling in the parameter space \cite{nguyen2009reduced} can be combine
 The primary goal is to ensure that the parameter domain of interest (i.e, $\mathbb P$) is efficiently sampled and includes enough information such that it can be used or wide range of parameters including those of higher dimensions.
 To construct this subspace, a training parameters dataset, $P_{train} \subset \mathbb P$, is prepared. 
 The greedy subspace is initialized with the first $r_1$ POD basis computed from a randomly selected sample of the training data.
-Next, this subspace is used to compute the ROM prediction error of the state variable for the rest of the training samples.
+Using this subspace, the ROM prediction error of the state variable for the rest of the training samples is computed.
 The sample at which the error is worst is selected, and the subspace is enriched by adding the first $r_1$ POD basis computed from the selected sample snapshots.
 Selecting the samples with the worst errors ensures efficient sampling of the parameter space.
 Intuitively, samples that are close to the previously chosen parameter points will have a smaller ROM error.
 On the other hand, one expects that the ROM will fail to give an accurate prediction at samples that are far from the included points in the current subspace.
 Thus, we keep adding new basis vectors until a maximum size of the subspace is reached or a user-specified error tolerance at a reference parameter point $\boldsymbol{\mu}_{\text{ref}}$ is met.
 Note that each time a new basis vector is added, the subspace is orthonormalized.
+
 Regarding the error criteria based on which a new sample is selected, there are two approaches. 
 Ideally, the true error can be used leading to ``strong POD-greedy'' \cite{benner2017model}.
 Alternatively, an error indicator can be used to alleviate the computational burden associated with evaluating the full-order-model. 
@@ -296,20 +300,21 @@ The term $\Delta(\textbf{U},\boldsymbol{\mu}_\text{ref})$  is the error measure 
 		
 		\ENSURE A reduced space $\textbf{U}$
 		
-		\STATE set n=0 
-		
+		\STATE Set n=0; randomly choose $\boldsymbol{\mu}\in P_{train}$
+		\STATE Evaluate the FOM at $\boldsymbol{\mu}$, $\textbf Y(\boldsymbol{\mu})$:= $\{\textbf{y}^1, \textbf{y}^2, ..... \textbf{y}^k\}$
+		\STATE $\mathbf{U} := \{\zeta_1, \zeta_2, ......,\zeta_{r1}\} := \text{POD}(\textbf{Y}(\boldsymbol{\mu}))$
 		\WHILE {$\epsilon:= \Delta(\textbf{U}, \boldsymbol{\mu}_\text{ref}) > \epsilon_{tol}$ or $n < r$}
 		
 		\STATE $\boldsymbol{\mu} := \argmaxH_{\boldsymbol{\mu}_\in P_{train}} \Delta(\textbf{U}, \boldsymbol{\mu)}$
 		
-		\STATE evaluate the FOM at $\boldsymbol{\mu}$, $\textbf Y(\boldsymbol{\mu})$:= $\{\textbf{y}^1, \textbf{y}^2, ..... \textbf{y}^k\}$ 
+		\STATE Evaluate the FOM at $\boldsymbol{\mu}$, $\textbf Y(\boldsymbol{\mu})$:= $\{\textbf{y}^1, \textbf{y}^2, ..... \textbf{y}^k\}$ 
 		
-		\STATE compute the POD modes of the FOM snapshots, $\{\zeta_1, \zeta_2, ......,\zeta_{r1}\} := \text{POD}(\textbf{Y}(\boldsymbol{\mu}), r_1)$
+		\STATE Compute the POD modes of the FOM snapshots, $\{\zeta_1, \zeta_2, ......,\zeta_{r1}\} := \text{POD}(\textbf{Y}(\boldsymbol{\mu}), r_1)$
 		
-		\STATE Compute the SVD of $\textbf Y(\mu)$ and keep the first $r_1$ POD modes:$\{\zeta_1, \zeta_2, ......,\zeta_{r1}\}= \text{POD}(\textbf{y}^1, \textbf{y}^2, ..... \textbf{y}^k\}, r_1) $
-		
-		\STATE $Z = \{Z, \{\zeta_1, \zeta_2, ....,\zeta_{r1}\}\}$ \text{and set} $n = n+r_1$
-		
+%		\STATE Compute the SVD of $\textbf Y(\mu)$ and keep the first $r_1$ POD modes:$\{\zeta_1, \zeta_2, ......,\zeta_{r1}\}= \text{POD}(\textbf{y}^1, \textbf{y}^2, ..... \textbf{y}^k\}, r_1) $
+%%		
+%		\STATE $Z = \{Z, \{\zeta_1, \zeta_2, ....,\zeta_{r1}\}\}$ \text{and set} $n = n+r_1$
+%		
 		\STATE update the reduced space, $\textbf{U} := \textbf{U} \cup \{\zeta_1, \zeta_2, ..,\zeta_{r1}\} $ and orthonormalize
 		
 		\STATE $n:=n+r_1$
@@ -329,7 +334,7 @@ The term $\Delta(\textbf{U},\boldsymbol{\mu}_\text{ref})$  is the error measure 
 %-----------------------------------------------------------------------------------------------------%
 \section{Application}
 
-\subsection{Time Dependent Diffusion Equation}
+\subsection{The time-dependent diffusion equation}
 \label{sec:fom}
 In this work, the time dependent diffusion equation was used as the mathematical model of neutronic transients in nuclear reactors, i.e FOM, and for which an approximate ROM is sought.
 The multi-group version of the equation is represented as
@@ -510,7 +515,7 @@ A schematic layout of the problem is shown in Fig.~\ref{fig:lra core}, where reg
 \end{figure}
 The transient is initiated by a control rod ejection with constant velocity over a period of 2 seconds leading to a super-critical, prompt transient, in which the power increases by about 10 orders of magnitude in a very short time.
 The control rod movement is represented by changing the thermal absorption cross section of the control rod material.
-In this application, the two-group diffusion equation represented in sec.\ref{sec:fom}, is coupled with thermal feedback through adiabatic fuel heat-up defined by
+In this application, the two-group diffusion equation represented in Sec.~\ref{sec:fom}, is coupled with thermal feedback through adiabatic fuel heat-up defined by
 \begin{equation}
 	\frac{\partial}{\partial t}T(x,t) = \alpha[\Sigma_{f1}(x,t)\phi_1(x,t)+\Sigma_{f2}(x,t)\phi_2(x,t)] \, ,
 	\label{eq:heatup}
@@ -611,7 +616,7 @@ This reference solution is not necessarily numerically converged in either space
 \section{ROM }
 \subsection{ROM Implementation}
 
-Using the POD-Galerkin projection procedures described in Sec.~\ref{sec:POD}, a ROM was constructed to approximate the group flux and the core power of the LRA benchmark with increasing the spatial fidelity, i.e, spatial grids of $22\times 22$, $44\times44$ and $55 \times 55$ were used.\\
+The POD-Galerkin projection procedures described in Sec.~\ref{sec:POD} were applied to the system in Eq.~\ref{eq:transient fom} to approximate the group flux and the core power of the LRA benchmark with increasing the spatial fidelity, i.e, spatial grids of $22\times 22$, $44\times44$ and $55 \times 55$ were used.\\
 POD basis set was generated for each group flux while one basis set was generated for both precursors groups, i.e, 
 $\mathbf{\Phi}_1(t) = \mathbf{U}_1\mathbf{a}_1(t)$, $\mathbf{\Phi}(t)_2 = \mathbf{U}_2\mathbf{a}_2(t)$ and $\mathbf{C}(t) = \mathbf{U}_c\mathbf{a}_c(t)$, where the $\mathbf{U}_1$, $\mathbf{U}_2$  and $\mathbf{U}_c$ are the POD bases of the fast group, thermal group and precursor concentration respectively, and $\mathbf{a}_1$, $\mathbf{a}_2$ and $\mathbf{a}_c$ are their respective temporal coefficients. 
 The resulting ROM can be represented as 
@@ -629,15 +634,14 @@ where
  \end{equation*}
 %The first 100 normalized singular values \footnote{The normalization is done be dividing each singular value by the sum of all singular values.} of the group flux are shown in Fig.~\ref{fig:lra singular values}.
 
-For POD rank selection, the ROM was solved with different flux ranks and the relative L$_2$ norm of the flux errors are computed and are shown in Fig.~\ref{fig:POD flux rank}.
+For POD rank selection, the ROM was solved with different flux ranks and the mean relative L$_2$ flux errors are computed and are shown in Fig.~\ref{fig:POD flux rank}.
 \begin{figure}[h!]
 	\includegraphics[width=1.0\linewidth]{../figures/flux_rank_convergence.pdf}
 	\caption{flux normalized singular value.}
 	\label{fig:POD flux rank}
 \end{figure}
-A POD rank of 30 was selected fore each group flux since it results in an error less than   \% and the same rank was used for approximating the precursors concentration.
+A POD rank of 30 was selected fore each group flux since it results in a reasonably good error, i.e, less than 0.001\% and the same rank was used for approximating the precursors concentration.
 Higher ranks can be selected if a better ROM accuracy is desired.
-
 Furthermore, a ROM was constructed for the coupled thermal feedback model and the temperature field was approximated by projecting it onto a lower dimensional POD space
 \begin{equation}
 	\mathbf{T}(t) = \mathbf{U}_{\text{temp}}\mathbf{a}_T(t) \, ,
@@ -653,7 +657,7 @@ Inserting Eq.~\ref{eq:temp pod} into Eq.~\ref{eq:heatup} and multiplying on the 
 \end{equation}
 Note that $\mathbf{U}_{T1}$ and $\mathbf{U}_{T2}$ are time-independent, so they can be precomputed once and stored.
 For selecting the temperature rank, i.e, $r_T$, the ROM was solved with different temperature ranks and the selected flux and precursors ranks.
-The core power relative error was computed in each case and is shown in Fig.~\ref{fig:temperature rank} based on which a POD of rank $10$ was selected for approximating the temperature.
+The mean core power relative error was computed in each case and is shown in Fig.~\ref{fig:temperature rank} based on which a POD of rank $10$ was selected for approximating the temperature since there was no improvement in the error for the higher ranks.
 
 \begin{figure}[H]
 	\centering
@@ -679,7 +683,7 @@ In particular, the submatrix $\mathbf{L}$ of $\mathbf{A}$ is the one that change
 Thus, to avoid performing the expensive projection at each time step, 
 The MDEIM was used to decompose the matrix $\mathbf{L}$.
 Shown in Fig.~\ref{fig:lra L singular values} are the singular values resulting from the SVD of the serialized operator snapshots. 
-Based on the shown plot, a MDEIM of order $15$ was used.
+A MDEIM of order $15$ was used since the singular-values decay by large magnitude around this value, however, higher orders can be chosen for higher accuracy.
 
 \begin{figure}[H]
 	\includegraphics[width=1.0\linewidth]{../figures/LRA_L_singular_values.pdf}
@@ -691,7 +695,7 @@ Based on the shown plot, a MDEIM of order $15$ was used.
 \subsection{ROM results}
 
 Using the selected ranks in the previous subsection, MDEIM-ROMs were developed for full-order models of spatial grids $22\times 22$, $44\times44$ and $55 \times 55$.
-For brevity, we show the first four POD modes with their temporal coefficients of only the $55 \times 55$ grid in Fig.~\ref{fig:lra flux modes}.
+%For brevity, we show the first four POD modes with their temporal coefficients of only the $55 \times 55$ grid in Fig.~\ref{fig:lra flux modes}.
 %\begin{figure}[H]
 %	\centering
 %	\begin{subfigure}[b]{0.45\textwidth}
@@ -707,7 +711,8 @@ For brevity, we show the first four POD modes with their temporal coefficients o
 %	\caption{Flux POD modes and their temporal coefficient.}
 %	\label{fig:lra flux modes}
 %\end{figure}
-The absolute relative error in the predicted core powers are computed as shown in Fig.~\ref{fig:deim power error}.
+The ROMs were solved for the group flux from which the core power was computed.
+The absolute relative error in the predicted core powers are shown in Fig.~\ref{fig:deim power error}.
 
 \begin{figure}[H]
 	\includegraphics[width=1.0\linewidth]{../figures/LRA_power_deim_relative_error.pdf}
@@ -715,14 +720,14 @@ The absolute relative error in the predicted core powers are computed as shown i
 	\label{fig:deim power error}
 \end{figure}
 
-To understand the impact of employing the MDEIM on the error; the results are compared with these of a ROM without using the MDEIM, i.e., with performing direct operator projection at each time step.
+To understand the impact of employing the MDEIM on the error; the results are compared with these of a direct projection ROM, i.e., with performing direct operator projection at each time step.
 The relative difference of the power between both models is shown in Fig.~\ref{fig:rom-deim power error}.
 The shown errors implies that MDEIM accurately approximates the problem operator.
 
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=1.0\linewidth]{../figures/LRA_mdeim_relative_error.pdf}
-	\caption{Relative difference in the predicted power between the ROM and the MDEIM-ROM.}
+	\caption{Relative difference in the predicted power between the direct projection ROM and the MDEIM-ROM.}
 	\label{fig:rom-deim power error}
 \end{figure}
 Also, the spatial-averaged relative error in the approximated temperature was computed and is shown in Fig.~\ref{fig:deim tempearture error}.
@@ -758,7 +763,7 @@ Moreover, the computational times of the FOM and the ROMs are given in Table~\re
 	\caption{Computational time of the FOM and the ROMs for the LRA benchmark.}
 	\label{table:cpu time}
 	\begin{tabular}{c|c|c|c}  
-		Grid &	FOM (s)   &  ROM (s) & MDEIM-ROM (s)    \\
+		Grid &	FOM (s)   &  direct projection ROM (s) & MDEIM-ROM (s)    \\
 		\hline
 		$22\times 22$ &  243   & 76   & 38   \\
 		$44\times 44$ &  1269  & 226   & 46   \\
@@ -768,9 +773,9 @@ Moreover, the computational times of the FOM and the ROMs are given in Table~\re
 \end{table*}
 
 Notably, the MDEIM-ROM is cheaper than the direct projection ROM with a speed-up that depends on the original model size.
-More importantly, the MDEIM-ROM cost is slightly dependent on the problem dimension while the ROM time increases with the grid size because the operator projection is performed at each time step.
+More importantly, the MDEIM-ROM cost is slightly dependent on the problem dimension while the other ROM time increases with the grid size because the operator projection is performed at each time step.
 The shown MEDIM-ROM time includes the offline cost which involves the operator $\mathbf{L}$ decomposition and the projection of the decomposed matrices.
-Also, both the ROM and MDEIM-ROM times include the time to reconstruct of the full-order solution.
+Also, both the ROMs times include the time to reconstruct of the full-order solution.
 
 %------------------------------------------------------------------------------------------------%
 \subsubsection{Parametric ROM Results}
