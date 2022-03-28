@@ -130,7 +130,8 @@ In this section, the methods used throughout the study are described, including 
 
 %--------------------------------------------------------------------------------------------------%
 
-\subsection{POD-Galerkin Projection}\label{class}
+\subsection{POD-Galerkin Projection}
+\label{sec:POD}
 
 Consider the following dynamic system that results from the discretization a partial differential equation using, e.g, the finite-difference method:
 \begin{equation}
@@ -271,7 +272,7 @@ For the rest of this paper, we will refer to the ROM with MDEIM as the MDEIM-ROM
 %-----------------------------------------------------------------------------------------%
 
 \subsection{Greedy POD}
-\label{sec:POD}
+\label{sec:greedy}
 
 A greedy sampling in the parameter space \cite{nguyen2009reduced} can be combined with POD to construct a global subspace that can be used in the framework of parametric ROMs.
 The primary goal is to ensure that the parameter domain of interest (i.e, $\mathbb P$) is efficiently sampled and includes enough information such that it can be used or wide range of parameters including those of higher dimensions.
@@ -613,12 +614,13 @@ This reference solution is not necessarily numerically converged in either space
 
 %--------------------------------------------------------------------------------------------------------------%
 
-\section{ROM }
+\section{ROM}
 \subsection{ROM Implementation}
 
 The POD-Galerkin projection procedures described in Sec.~\ref{sec:POD} were applied to the system in Eq.~\ref{eq:transient fom} to approximate the group flux and the core power of the LRA benchmark with increasing the spatial fidelity, i.e, spatial grids of $22\times 22$, $44\times44$ and $55 \times 55$ were used.\\
-POD basis set was generated for each group flux while one basis set was generated for both precursors groups, i.e, 
-$\mathbf{\Phi}_1(t) = \mathbf{U}_1\mathbf{a}_1(t)$, $\mathbf{\Phi}(t)_2 = \mathbf{U}_2\mathbf{a}_2(t)$ and $\mathbf{C}(t) = \mathbf{U}_c\mathbf{a}_c(t)$, where the $\mathbf{U}_1$, $\mathbf{U}_2$  and $\mathbf{U}_c$ are the POD bases of the fast group, thermal group and precursor concentration respectively, and $\mathbf{a}_1$, $\mathbf{a}_2$ and $\mathbf{a}_c$ are their respective temporal coefficients. 
+POD basis set was generated for each group flux, 
+while one basis set was generated for both precursors groups, i.e, 
+$\mathbf{\Phi}_1(t) = \mathbf{U}_1\mathbf{a}_1(t)$, $\mathbf{\Phi}(t)_2 = \mathbf{U}_2\mathbf{a}_2(t)$ and $\mathbf{C}(t) = \mathbf{U}_c\mathbf{a}_c(t)$, where $\mathbf{U}_1$, $\mathbf{U}_2$  and $\mathbf{U}_c$ are the POD bases of the fast group, thermal group and precursor concentration respectively, and $\mathbf{a}_1$, $\mathbf{a}_2$ and $\mathbf{a}_c$ are their respective temporal coefficients. 
 The resulting ROM can be represented as 
 \begin{equation}
 	\frac{d\mathbf{\hat{y}}}{dt} = \mathbf{A}_r\mathbf{\hat{y}}\, , 
@@ -633,21 +635,20 @@ where
 	\end{pmatrix} \,.
  \end{equation*}
 %The first 100 normalized singular values \footnote{The normalization is done be dividing each singular value by the sum of all singular values.} of the group flux are shown in Fig.~\ref{fig:lra singular values}.
-
-For POD rank selection, the ROM was solved with different flux ranks and the mean relative L$_2$ flux errors are computed and are shown in Fig.~\ref{fig:POD flux rank}.
+For POD rank selection, the ROM was solved with different flux ranks, and the mean relative L$_2$ flux errors are computed and are shown in Fig.~\ref{fig:POD flux rank}.
 \begin{figure}[h!]
 	\includegraphics[width=1.0\linewidth]{../figures/flux_rank_convergence.pdf}
 	\caption{flux normalized singular value.}
 	\label{fig:POD flux rank}
 \end{figure}
-A POD rank of 30 was selected fore each group flux since it results in a reasonably good error, i.e, less than 0.001\% and the same rank was used for approximating the precursors concentration.
+A POD rank of 30 was selected for each group flux since it results in a reasonably good error, i.e, less than 0.001\%, and the same rank was used for approximating the precursors concentration.
 Higher ranks can be selected if a better ROM accuracy is desired.
-Furthermore, a ROM was constructed for the coupled thermal feedback model and the temperature field was approximated by projecting it onto a lower dimensional POD space
+Furthermore, a ROM was constructed for the coupled thermal feedback model, and the temperature field was approximated by projecting it onto a lower dimensional POD space
 \begin{equation}
 	\mathbf{T}(t) = \mathbf{U}_{\text{temp}}\mathbf{a}_T(t) \, ,
 	\label{eq:temp pod}
 \end{equation}
-where $\mathbf{U}_{\text{temp}}\in\mathbb{R}^{n \times r_T} $ is the POD subspace of rank $r_T$ and $\mathbf{a}_T\in \mathbb{R}^{r_T}$ is a vector of the corresponding temporal coefficients. 
+where $\mathbf{U}_{\text{temp}}\in\mathbb{R}^{n \times r_T} $ is the POD subspace of rank $r_T$, and $\mathbf{a}_T\in \mathbb{R}^{r_T}$ is a vector of the corresponding temporal coefficients. 
 %To obtain the subspace, snapshots of the temperature were collected at different times for which the SVD was computed.
 %Shown in Fig.~\ref{fig:lra T singular values} are the first 100 normalized singular values.
 Inserting Eq.~\ref{eq:temp pod} into Eq.~\ref{eq:heatup} and multiplying on the left by $\mathbf{U}_T^T$ \footnote{The superscript T denotes the matrix transpose.} yields
@@ -657,20 +658,21 @@ Inserting Eq.~\ref{eq:temp pod} into Eq.~\ref{eq:heatup} and multiplying on the 
 \end{equation}
 Note that $\mathbf{U}_{T1}$ and $\mathbf{U}_{T2}$ are time-independent, so they can be precomputed once and stored.
 For selecting the temperature rank, i.e, $r_T$, the ROM was solved with different temperature ranks and the selected flux and precursors ranks.
-The mean core power relative error was computed in each case and is shown in Fig.~\ref{fig:temperature rank} based on which a POD of rank $10$ was selected for approximating the temperature since there was no improvement in the error for the higher ranks.
-
+The mean of the core power relative error was computed in each case and is shown in Fig.~\ref{fig:temperature rank}.
+Based on the shown error, a POD of rank $10$ was selected for approximating the temperature since there was no improvement in the error by using higher ranks.
+Note that the error cannot decrease below the error introduced by the group flux approximation.
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=1.0\linewidth]{../figures/temperature_rank_convergence.pdf}
-	\caption{temperature normalized singular value.}
+	\caption{Temperature normalized singular value.}
 	\label{fig:temperature rank}
 \end{figure}
-
-Now to solve for the quantities of interest, the flux temporal coefficients (i.e, $\mathbf{a_1}(t)$ and $\mathbf{a_2}(t)$) are computed at each time step by solving the reduced system in Eq.~\ref{eq:ROM} and then used to compute the temperature coefficients by employing a first-order, backward-difference scheme to Eq.~\ref{eq:reduced temp}.
+Now to solve for the quantities of interest, the flux temporal coefficients (i.e, $\mathbf{a_1}(t)$ and $\mathbf{a_2}(t)$) are computed at each time step by solving the reduced system in Eq.~\ref{eq:ROM} and then used to compute the temperature coefficients by solving Eq.~\ref{eq:reduced temp}.
+A first-order, backward-difference scheme was employed for solving the two systems.
 Similar to the full-order model, a fixed point iteration is used to treat the flux non-linearity.
 However, it was observed that the reduced model needed more iterations to converge which could be due to the small value of some of the flux coefficients, hence a convergence criteria was employed based on the relative $\text{L}_2$ norm of the error of flux coefficients between two consecutive iterations 
 \begin{equation}
-	\frac{\|\mathbf{a}^{i-1} - \mathbf{a}^{i}\|}{\|\mathbf{a}_i \|} \le 1\times 10^{-6}  \, , 
+	\frac{\|\mathbf{a}^{i-1} - \mathbf{a}^{i}\|}{\|\mathbf{a}_i \|} \le 1\times 10^{-6}  \, .
 \end{equation}
 
 %Note that the fast absorption cross section needs to be updated at each time step using Eq.~\ref{eq:doppler} in which the core temperature distribution is required.
@@ -683,18 +685,19 @@ In particular, the submatrix $\mathbf{L}$ of $\mathbf{A}$ is the one that change
 Thus, to avoid performing the expensive projection at each time step, 
 The MDEIM was used to decompose the matrix $\mathbf{L}$.
 Shown in Fig.~\ref{fig:lra L singular values} are the singular values resulting from the SVD of the serialized operator snapshots. 
-A MDEIM of order $15$ was used since the singular-values decay by large magnitude around this value, however, higher orders can be chosen for higher accuracy.
+A MDEIM of order $15$ was used since the singular-values decay by large magnitude around this value; however, higher orders can be chosen for better accuracy.
 
 \begin{figure}[H]
 	\includegraphics[width=1.0\linewidth]{../figures/LRA_L_singular_values.pdf}
 	\caption{The normalized singular values of the serializes operator $\mathbf{L}$.}
 	\label{fig:lra L singular values}
 \end{figure}
+
 %----------------------------------------------------------------------------------------------------%
 
-\subsection{ROM results}
+\subsection{ROM Results}
 
-Using the selected ranks in the previous subsection, MDEIM-ROMs were developed for full-order models of spatial grids $22\times 22$, $44\times44$ and $55 \times 55$.
+Using the selected POD ranks, MDEIM-ROMs were developed for full-order models of spatial grids $22\times 22$, $44\times44$, and $55 \times 55$.
 %For brevity, we show the first four POD modes with their temporal coefficients of only the $55 \times 55$ grid in Fig.~\ref{fig:lra flux modes}.
 %\begin{figure}[H]
 %	\centering
@@ -719,19 +722,17 @@ The absolute relative error in the predicted core powers are shown in Fig.~\ref{
 	\caption{Relative error of the power predicted by MDEIM-ROM}
 	\label{fig:deim power error}
 \end{figure}
-
-To understand the impact of employing the MDEIM on the error; the results are compared with these of a direct projection ROM, i.e., with performing direct operator projection at each time step.
+To understand the impact of employing the MDEIM on the error, the results are compared with these of a direct-projection ROM, i.e., with performing direct operator projection at each time step.
 The relative difference of the power between both models is shown in Fig.~\ref{fig:rom-deim power error}.
 The shown errors implies that MDEIM accurately approximates the problem operator.
 
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=1.0\linewidth]{../figures/LRA_mdeim_relative_error.pdf}
-	\caption{Relative difference in the predicted power between the direct projection ROM and the MDEIM-ROM.}
+	\caption{Relative difference in the predicted power between the direct-projection ROM and the MDEIM-ROM.}
 	\label{fig:rom-deim power error}
 \end{figure}
 Also, the spatial-averaged relative error in the approximated temperature was computed and is shown in Fig.~\ref{fig:deim tempearture error}.
-
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=1.0\linewidth]{../figures/temperature_relative_error.pdf}
@@ -756,7 +757,6 @@ To further assess the performance of the ROM, the relative error in a local quan
 	\label{fig:assembly power error fm=5}
 \end{figure} 
 
-Moreover, the computational times of the FOM and the ROMs are given in Table~\ref{table:cpu time}.
 
 \begin{table*}[h!]
 	\centering
@@ -771,8 +771,8 @@ Moreover, the computational times of the FOM and the ROMs are given in Table~\re
 		\hline
 	\end{tabular}
 \end{table*}
-
-Notably, the MDEIM-ROM is cheaper than the direct projection ROM with a speed-up that depends on the original model size.
+Moreover, the computational times of the FOM and the ROMs are given in Table~\ref{table:cpu time}.
+Notably, the MDEIM-ROM is cheaper than the direct-projection ROM with a speed-up that depends on the original model size.
 More importantly, the MDEIM-ROM cost is slightly dependent on the problem dimension while the other ROM time increases with the grid size because the operator projection is performed at each time step.
 The shown MEDIM-ROM time includes the offline cost which involves the operator $\mathbf{L}$ decomposition and the projection of the decomposed matrices.
 Also, both the ROMs times include the time to reconstruct of the full-order solution.
@@ -787,7 +787,7 @@ Instead, we merely aim to measure the prediction error of the ROM at new paramet
 A case study was performed in which the parameters of interest are assumed to be the kinetic data, i.e., the delayed neutron fractions and the decay constants. A POD greedy sampling was used to construct a global POD subspace.
 Although the original benchmark employs two precursor groups, it was more convenient in this study to use six groups to enlarge the parameter space.
 Shown in Table \ref{tab: 6 groups precursor data} are the parameters normal distributions data adopted from Refs.~\cite{keepin1957delayed, tuttle1975delayed}.
-A POD greedy sampling is used for which a set of 50 parameters points were generated to obtain a global POD space, where at each iteration, three POD basis vectors are added to the space.
+The POD greedy sampling presented in Sec.\ref{sec:greedy} is used for which a set of 50 parameters points were generated to obtain a global POD space, where at each iteration, three POD basis vectors are added to the space.
 A grid of $22\times 22$ is used throughout this study.
 A greedy algorithm stopping criteria was used such that the iteration terminates if the relative norm of the flux error is $1\times10^{-4}$ or the POD space has a size of 6 (i.e., 20 parameters points are selected).
 As noted earlier, there are no general prior criteria for selecting these parameters.
@@ -804,7 +804,7 @@ As noted earlier, there are no general prior criteria for selecting these parame
 		5    &  $0.128 \pm 0.012$ & $1.4000\pm0.1200$ \\
 		6    &  $0.026\pm0.004$ & $3.8700\pm0.5500$ \\
 	\end{tabular}
-	\caption{6 groups delayed neutron precursor data.}
+	\caption{six groups delayed neutron precursor data.}
 	\label{tab: 6 groups precursor data}
 \end{table}
 
@@ -842,6 +842,8 @@ Shown in Fig.~ \ref{fig:peak power mean error}, the sample mean of the assembly 
 Among all samples, the maximum assembly power peak was $0.00111\%$, and the maximum temperature error was $2.9\times10^{-5}\%$.
 The resulting errors imply that the greedy-sampled POD subspace is rich with information from the whole parameters domain,
 and accordingly, resulted in a good approximation even for parameters not among the training sample.
+This means that using the POD-greedy sampling, POD basis sets can be pre-generated for different transient scenarios and used to run the ROM in multi-run applications that require running the same model but with changing the input parameters.
+
 
 %------------------------------------------------------------------------------------------------------%
 \section{Conclusion}
@@ -853,12 +855,12 @@ In particular, performing the projection entails a number of FLOPs that depend o
 Consequently, for high dimensional problems, the projection step could add significant cost to the ROM, reducing its efficiency.
 The ROM was built using the POD-Galerkin projection method to reduce the number of equations to be solved, and combined with the matrix version of DEIM to alleviate the burden associated with projecting the problem operator.
 The LRA benchmark representing a simplified multi-physics problem was the application used to illustrate the method.
-Using the MDEIM introduced FOMs speeds up that range from 4 to 50 depending on the numerical fidelity, with a maximum power relative error in the order of $1\times 10^{-5}$\%.
-More importantly, the computational saving gained from using the MDEIM-ROM is more than that of the direct projection ROM.
+Using the MDEIM introduced FOMs speeds up that range from 6 to 40 depending on the numerical fidelity, with a maximum power relative error in the order of $1\times 10^{-5}$\%.
+More importantly, using the MDEIM-ROM proved to be more computationally efficient over the direct-projection ROM, and it becomes even more efficient with higher-dimensional problems.
 
 In general, the use of ROMs becomes more appreciable with multi-run applications that need running the model with varying input parameters.
 Hence, the developed ROM was parameterized by means of POD-greedy sampling to generate a POD subspace global to a parameter domain of interest.
-The parameterized ROM in which the parameters of interest were the kinetic data, resulted in a maximum assembly power relative error across all testing parameter points that is in the order of $1\times 10^{-3}$\%.
+The parameterized ROM in which the parameters of interest were the kinetic data, resulted in a maximum assembly averaged power relative error across all testing parameter points that is in the order of $1\times 10^{-3}$\%.
 
 In terms of the practical implementation, an important concluding remark is that although the POD-Galerkin method is considered as an intrusive ROM technique, the implemented ROM did not require any major changes to the existing code, i.e, Detran,  making it a {\it trivially intrusive} technique.
 Rather, access only to the system operator, which represents all of the underlying system discretizations, was needed.
