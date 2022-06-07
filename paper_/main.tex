@@ -502,7 +502,7 @@ P(x,t)=\kappa [\Sigma_{f1}(x,t)\phi_1(x,t)+\Sigma_{f2}(x,t)\phi_2(x,t)] \, ,
 where $\kappa = 3.204\times 10^{-11}~ \text{W/fission}$.
 The model was implemented in the deterministic transport code Detran~\cite{roberts2014advanced}.
 A mesh-centered, finite-difference discretization was used in space, while a first-order, backward-difference temporal discretization was used with a fixed 0.001 s step size.  
-The initial condition for the transient was computed by solving the steady-state equation, for which $k_{\text{eff}}$ was found to be 0.9975.
+The initial condition for the transient was computed by solving the eigenvalue problem, for which $k_{\text{eff}}$ was found to be 0.9975.
 Note that at each time step the fast absorption cross section is a function of the solution itself.
 The convergence criterion used to reduce the $\text{L}_2$ norm  of the relative flux error between two consecutive iterations to less than $1\times 10^{-6}$, or
 \begin{equation}
@@ -684,11 +684,11 @@ Using the selected POD ranks, MDEIM-ROMs were developed for full-order models of
 The ROMs were solved for the group flux from which the core power was computed.
 The absolute relative error in the predicted core powers are shown in Fig.~\ref{fig:deim power error}.
 
-\begin{figure}[H]
-	\includegraphics[width=1.0\linewidth]{../figures/_.pdf}
-	\caption{Relative error of the power predicted by MDEIM-ROM}
-	\label{fig:deim power error}
-\end{figure}
+%\begin{figure}[H]
+%	\includegraphics[width=1.0\linewidth]{../figures/_.pdf}
+%	\caption{Relative error of the power predicted by MDEIM-ROM}
+%	\label{fig:deim power error}
+%\end{figure}
 To understand the impact of employing the MDEIM on the error, the results are compared with these of a direct-projection ROM, i.e., with performing direct operator projection at each time step.
 The relative difference of the power between both models is shown in Fig.~\ref{fig:rom-deim power error}.
 The shown errors implies that MDEIM accurately approximates the problem operator.
