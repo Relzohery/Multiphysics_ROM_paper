@@ -80,10 +80,12 @@
 %------------------------------------------------------------------------------
 \begin{abstract}
 Presented here is an application of model-order reduction to non-linear neutronic transients.
-The effort described extends previous work\cite{elzohery2021exploring} aimed to develop and assess a ROM framework that can be used for different purposes, such as design optimization and propagating input parameter uncertainties like nuclear data.
+The effort described extends previous work\cite{elzohery2021exploring} aimed to develop and assess a Reduced-order model(ROM) framework that can be used for different purposes, such as design optimization and propagating input parameter uncertainties like nuclear data.
 Here, the target applications is non-linear.
 The ROM was built with the use of the POD-Galerkin projection method and the matrix version of the Discrete Empirical Interpolation Method (MDEIM) for improved efficiency.
-The MDEIM is used to approximate the projection of the problem operator that otherwise must be computed at each non-linear iteration within each time step, which increases the ROM cost.
+Where applications of the ROM to the diffusion equation have been introduced before \cite{}, this work focuses on treating the non-linearity induced by coupling with different physics.
+Previous work has used the DEIM to approximate non-linear fielsa such as the temperature \cite{german2019application}.
+Here, the MDEIM is used to approximate the projection of the problem operator that otherwise must be computed at each non-linear iteration within each time step, which increases the ROM cost.
 By applying the method to the LRA benchmark, speed ups from 6 to 40 were achieved depending on the full-order model (FOM) spatial fidelity.
 The maximum relative error in the assemblies power was in the order of $1\times10^{-5}$\%.
 Moreover, the ROM was parameterized by POD-greedy sampling, and a case study was performed where the kinetic data, i.e, the precursor decay constants and delayed-neutron fraction were assumed to be the model parameters of interest.
@@ -144,8 +146,10 @@ In particular, the ROM was developed using the POD-Galerkin projection.
 The method belongs to the projection-based family and can be described as a physics-driven method since it requires knowledge of the original governing equation as will be shown in Sec.\ref{sec:POD}.
 In a previous work \cite{elzohery2021exploring}, we applied the method to the time-dependent diffusion equation where there was no coupling with other models and hence the application was linear.
 In this study, the developed ROM was extended to treat the non-linearity induced by multi-physics modeling.
-To improve the computational efficiency of the developed ROM, a hyper-reduction technique known as the Discrete Empirical Interpolation Method (DEIM) was used in conjunction with the POD-Galerkin projection.
-The primary purpose of using the DEIM is to obtain an offline-online decomposition of the ROM to avoid repetitive projection of the problem operator at each iteration within the time step.
+At this point, we must emphysize that the method used here, i.e; POD Galerkin projection has been used in previous works to approximate the diffusion equation \cite{} for different problems and codes where it showed promising results.
+Moreover, the  Discrete Empirical Interpolation Method, DEIM, has been used in conjunction with the POD-Galerkin projection to approximate non-linear fields such as the temperature and the flow fields  .... \cite{}.  
+Here, we are presenting another variant of the DEIM algorithm, known as the matrix version of DEIM, i,e; MDEIM, in order to improve the computational efficiency of the developed ROM.
+The primary purpose of using the MDEIM is to obtain an offline-online decomposition of the ROM to avoid repetitive projection of the problem operator at each iteration within the time step.
 The offline stage occurs only once and comprises the expensive step of the ROM.
 On the other hand, the online stage involves solving a reduced number of equations at each time step with a computational cost independent of the FOM dimension and hence cheaper.
 The LRA benchmark was used as a demonstrative application where the diffusion equation is coupled with a simplified thermal feedback model.
@@ -370,7 +374,7 @@ The multi-group version of the equation is represented as
 \frac{1}{v_g} \frac{\partial\phi_g}{\partial t} &= 
 \nabla. D_g\nabla\phi_g - \Sigma_{tg}\phi_g + \sum_{g^\prime=1}^{G}{\Sigma_{sg^\prime g}}\phi_{g^\prime} \\
 &+ \chi_g(1-\beta)\sum_{g^\prime = 1}^{G}\nu\Sigma_{fg^\prime}\phi_{g^\prime}  
-+ \chi_g\sum_{i=1}^{P} \lambda_i C_i \, ,
++ \chi_g\sum_{i=1}^{I} \lambda_i C_i \, ,
 \end{split}
 \label{time_diff}
 \end{equation}
@@ -587,7 +591,7 @@ This reference solution is not necessarily numerically converged in either space
 The POD-Galerkin projection procedures described in Sec.~\ref{sec:POD} were applied to the system in Eq.~\ref{eq:transient fom} to approximate the group flux and the core power of the LRA benchmark with increasing the spatial fidelity, i.e, spatial grids of $22\times 22$, $44\times44$, and $55 \times 55$ were used.\\
 POD basis set was generated for each group flux, 
 while one basis set was generated for both precursors groups, i.e, 
-$\mathbf{\Phi}_1(t) = \mathbf{U}_1\mathbf{a}_1(t)$, $\mathbf{\Phi}(t)_2 = \mathbf{U}_2\mathbf{a}_2(t)$ and $\mathbf{C}(t) = \mathbf{U}_c\mathbf{a}_c(t)$, where $\mathbf{U}_1$, $\mathbf{U}_2$  and $\mathbf{U}_c$ are the POD bases of the fast group, thermal group and precursor concentration respectively, and $\mathbf{a}_1$, $\mathbf{a}_2$ and $\mathbf{a}_c$ are their respective temporal coefficients. 
+$\mathbf{\Phi}_1(t) = \mathbf{U}_1\mathbf{a}_1(t)$, $\mathbf{\Phi}_2(t) = \mathbf{U}_2\mathbf{a}_2(t)$ and $\mathbf{C}(t) = \mathbf{U}_c\mathbf{a}_c(t)$, where $\mathbf{U}_1$, $\mathbf{U}_2$  and $\mathbf{U}_c$ are the POD bases of the fast group, thermal group and precursor concentration respectively, and $\mathbf{a}_1$, $\mathbf{a}_2$ and $\mathbf{a}_c$ are their respective temporal coefficients. 
 The resulting ROM can be represented as 
 \begin{equation}
 \frac{d\mathbf{\hat{y}}}{dt} = \mathbf{A}_r\mathbf{\hat{y}}\, , 
