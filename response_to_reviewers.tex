@@ -1,0 +1,179 @@
+% Title:    A LaTeX Template For Responses To a Referees' Reports
+% Author:   Petr Zemek <s3rvac@gmail.com>
+% Homepage: https://blog.petrzemek.net/2016/07/17/latex-template-for-responses-to-referees-reports/
+% License:  CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+\documentclass[10pt]{article}
+
+% Allow Unicode input (alternatively, you can use XeLaTeX or LuaLaTeX)
+\usepackage[utf8]{inputenc}
+\usepackage{xcolor}
+
+\usepackage{microtype,xparse,tcolorbox}
+\newenvironment{reviewer-comment }{}{}
+\tcbuselibrary{skins}
+\tcolorboxenvironment{reviewer-comment }{empty,
+  left = 1em, top = 1ex, bottom = 1ex,
+  borderline west = {2pt} {0pt} {black!20},
+}
+\ExplSyntaxOn
+\NewDocumentEnvironment {response} { +m O{black!20} } {
+  \IfValueT {#1} {
+    \begin{reviewer-comment~}
+      \setlength\parindent{2em}
+      \noindent
+      \ttfamily #1
+    \end{reviewer-comment~}
+  }
+  \par\noindent\ignorespaces
+} { \bigskip\par }
+
+\NewDocumentCommand \Reviewer { m } {
+  \section*{Comments~by~Reviewer~#1}
+}
+\ExplSyntaxOff
+\AtBeginDocument{\maketitle\thispagestyle{empty}\noindent}
+
+\title{Statement on the Revision of ANUCENE-D-22-00268 \\
+  Based on the Referees' Report}
+\author{Rabab Elzohery \and Jeremy A. Roberts}
+\date{\today}
+
+\begin{document}
+This statement concerns our revision of the ANUCENE-D-22-00268, entitled ``Model-order reduction of non-linear time-dependent neutronics via POD-Galerkin projection and DEIM'', based on the referees' report.
+
+\Reviewer{\#1}
+
+\begin{response}{
+   The paper is clear and relatively well written but has limited novelty. Use of ROM for neutron diffusion problems has already been widely investigated at the Politecnico di Milano (see the work of Stefano Lorenzi and Alberto Sartori), with co-authoring from world-leading experts from SISSA (Professor Rozza), as well as at TAMU (see the work of Peter German and Jean Ragusa). In particular, use of ROM with DEIM for non-linear neutronics is described in:
+  
+  "Application of multiphysics model order reduction to doppler/neutronic feedback"
+  P German, JC Ragusa, C Fiorina
+  EPJ Nuclear Sciences \& Technologies 5 (ARTICLE), 17
+  
+  or
+  
+  Péter German, Mauricio Tano, Carlo Fiorina, Jean C. Ragusa,
+  GeN-ROM—An OpenFOAM®-based multiphysics reduced-order modeling framework for the analysis of Molten Salt Reactors,
+  Progress in Nuclear Energy,
+  Volume 146,
+  2022,
+  104148,
+  ISSN 0149-1970,
+  https://doi.org/10.1016/j.pnucene.2022.104148.
+  
+  The novelty of the paper is then restricted to the implementation of the model in a specific code, and to its application to a specific problem. I believe this may still make it worth publishing, but the authors are requested to rewrite abstract, introduction and conclusions in order to:
+  - acknowledge the work of other authors on the subject
+  - adapt their claims to the fact that the methodology has already been proposed and tested.
+  They should also change the title, as it gives the idea that this is a first-of-a-kind paper using a POD-Galerkin and DEIM for neutronics, while this is not the case. The title should focus on elements of actual novelty (implementation in a specific code and application to a benchmark).}
+
+We agree with reviewer that ROM with DEIM was successfully used before and we have acknowledged this in the introduction section and cited these papers.
+However, it is important to clarify that in our work, we used a different variant of the DEIM algorithm, which is its matrix version.
+Moreover, where DEIM was used previously to approximate non-linear functions such as the temperature and the velocity filed, we have used MDEIM to approximate the problem operator in case an affine decomposition is not readily obtainable. To the author knowledge the matrix version of DEIM was not used before in the nuclear community.
+As the reviewer suggested, we have modified the title to reflect this goal
+\end{response}
+
+\begin{response}{I would not define JFNK as a modern method. I have found publications from the eighties on it, and I guess it may be older than that. I also would avoid passing the message that block-matrix coupling is faster than operator-splitting. Very often, this is not the case, as operator splitting allows a very well targeted preconditioning, and selective solution of non-converged fields
+}
+
+we agree with author. Our intention was that the algorithm is implemented in modern codes, but we have removed the word `modern' to avoid confusion.
+  
+\end{response}
+
+\begin{response}{
+ In the sentence "The initial condition for the transient was computed by solving the steady-state equation", I believe it would be more accurate to speak about "eigenvalue problem" instead of " steady-state equation".}
+
+We agree with the reviewer. The initial condition is computed by solving an eigenvalue problem, and this has been modified.
+
+\end{response}
+
+\begin{response}{The authors mention "Note that at each time step the fast absorption cross section is a function of the solution itself". Is this an assumption, a statement, or a feature of the benchmark? Is this the only XS that is parametrized?.}
+		
+This a feature of the benchmark. The fast cross section is defined as a function of the temperature at each time step, and the temperature changes as a function of the neutron flux, i.e, the solution. And yes, this the only cross section that is parametrized
+\end{response}
+
+\begin{response}
+  {What do you mean by "This reference solution is not necessarily numerically converged in either space or time". If it is not converged, it may not be a meaningful solution and should probably not be used in a numerical benchmark, since it may not be representative of the problem at hand. Please clarify.}
+  ----------------------------------------
+	
+\end{response}
+
+\begin{response}
+	{ I am not sure I understand how the snapshots are taken. Are they the time dependent fluxes taken from the FOM solution? If that is the case, results in fig. 6 are essentially a sanity check, since reaching that level of accuracy would always require precomputing the transient with the FOM model. Please clarify}
+	
+	Yes, the snapshots are FOM time-dependent flux. We have added a sentence to clarify this in the paper.
+	
+------------------------------------
+\end{response}
+
+\begin{response}
+ {How are the parameters points sampled in section 4.2.2}
+ 
+ They are sampled from the normal distribution shown in table~4. No correlation was assumed between the six parameters.
+
+\end{response}
+
+\begin{response}
+{I find it very difficult to interpret the results of section 4.2.2. The authors compare the predictions of ROM and FOM, but what is the impact of the parameters on the FOM itself? Without this information, it is impossible to assess the goodness of the ROM approximation. The error made by the ROM model should be small with respect to the differences expected in the FOM when changing the selected parameters.}
+
+We mentioned in the paper that the time-to-peak differs from FOM sample to another.
+On the other hand, the time-to-peak of the ROM solution is exactly the same as in the FOM solution.
+That is why it was not convenient to compute point-by-point difference between the FOM solutions. 
+The difference between the FOM peak power at different parameters points varies between 0.1 to 1\%,  which indicates a significantly larger difference between the FOM solution peak powers compared to the ROM error.
+we have clarified this in the paper.
+------------------------------------
+\end{response}
+
+\Reviewer{\#2}
+\begin{response}
+	{
+		Equations (14)-(15), (18)-(20):
+		In my understanding, the non-linear operator L is calculated with the MDEIM, and the authors also applied the POD for Equation (14) to treat the temperature distribution with fewer DOFs.
+		However, I could not clearly understand how the authors calculate Equation (15) before applying MDEIM from the expansion coefficients $(a_T)$ for the temperature distribution. A few more descriptions of the procedure will help a better understanding for readers.
+		( I mean the relationship between the non-linear operator L and f(y(t)) in section 2.2 is not clear. The description of Equation (12) also makes it difficult to clearly understand because Equation (12) can be seen as a linear equation but the actual operator L is a non-linear function due to the feedback effect.)
+	}
+
+It is more accurate to say that the operator L is approximated (not calculated) by MDEIM.
+For clarity, at each time step, MDEIM is first applied to approximate the operator, and Eq~18 is solved for the flux coefficients.
+Theses flux coefficient are then used in Eq.~20 to update the temperature coefficients $a-T$.
+Using this computed temperature, the fast cross-section is updated using Eq.~15.
+But we agree with reviewer that Eq.~12, as presented, is linear, since was a general representation of the diffusion equation, and this has been clarified in the paper.
+In particular, we clarified that in the problem studied here, coupling with TH model leads to $\textbf{A}$ be a function of the solution, i.e, $\textbf{A}(\textbf{y}(t))$.
+Also, it is mentioned that vectorized form of the operator corresponds to the function f(y(t)) given in section 2.2.
+
+
+
+\end{response}
+
+-------------------------------
+
+
+\begin{response}
+{ pages 15 and Table 1:
+	The Doppler feedback coefficient, $3.034x10^-3 K^-0.5$, seems not identical to the benchmark specification in the reference [15]. In the original benchmark specification, it would be $2.034x10^-3 K^-0.5$.
+	In addition, the axial bucking $(B^2)$ is specified in the original LRA 2D benchmark problem in my understanding. If the authors are using axial buckling, it should be described in Table 1. "nu" value is also missing in Table 1.
+	(You can also find the LRA benchmark results calculated with the conventional codes in the following reference:
+	T.M. Sutton, and B. N. Aviles, "Diffusion Theory Methods for Spatial Kinetics Calculations", Prog. Nucl. Energy, 30(2), 119-182, 1996.
+	Since the initial keff = 0.9975 is a little higher than their results, I wonder whether the axial buckling is taken into account or not.)
+	Off course, the above inconsistency in the FOM calculation condition does not affect the validity of the methodology presented in this work.}
+
+
+The doppler coefficient ????????????
+The axial buckling was accounted for as given on the benchmark documentation. We have commented on that in the paper and added its value in table~1 along with the value of $\nu$. Thanks for the catch.
+Regarding to the value of initial keff, it is sensitive to the spatial discretization, the numerical solver and the convergence criteria, and this might be the cause of this little bias that you observed.
+We agree with the reviewer that any inconsistency resulting from a change in the problem data from that in the original benchmark does not affect the presented results, as long the problem parameters are consistent in both the FOM and the ROM. 
+
+
+-------------------------------------
+\end{response}
+
+\begin{response}
+{
+ page 1, line 11 : "ROM" --> reduced order model (ROM)
+ page 12, Equation (11) : P --> I (Authors are using "I" for the number of precursor groups in page 13.)}
+% page 15 : kappa = $3.204 x 10^-11 W/fission --> kappa = 3.204 x 10^-11 J/fission$
+% page 18, line 2 : $fai(t)2 --> fai_2(t)}$
+
+\end{response}
+These have been corrected. Thanks catching these errors.
+
+\end{document}

@@ -56,9 +56,9 @@
 %% use the cortext command for the associated footnote;
 %% use the ead command for the email address,
 %% and the form \ead[url] for the home page:
-%%
-
-\title{Model-order reduction of non-linear time-dependent neutronics via POD-Galerkin projection and DEIM}
+%%POD-Galerkin projection
+\title{Application of Model-order reduction of non-linear time-dependent neutronics via POD-Galerkin projection and matrix discrete empirical interpolation}
+%\title{Model-order reduction of non-linear time-dependent neutronics via POD-Galerkin projection and DEIM}
 %% \tnotetext[label1]{}
 \author[focal]{Rabab Elzohery\corref{cor}}
 \ead{Rababelzohery@ksu.edu}
@@ -80,10 +80,12 @@
 %------------------------------------------------------------------------------
 \begin{abstract}
 Presented here is an application of model-order reduction to non-linear neutronic transients.
-The effort described extends previous work\cite{elzohery2021exploring} aimed to develop and assess a ROM framework that can be used for different purposes, such as design optimization and propagating input parameter uncertainties like nuclear data.
+The effort described extends previous work\cite{elzohery2021exploring} aimed to develop and assess a Reduced-order model (ROM) framework that can be used for different purposes, such as design optimization and propagating input parameter uncertainties like nuclear data.
 Here, the target applications is non-linear.
 The ROM was built with the use of the POD-Galerkin projection method and the matrix version of the Discrete Empirical Interpolation Method (MDEIM) for improved efficiency.
-The MDEIM is used to approximate the projection of the problem operator that otherwise must be computed at each non-linear iteration within each time step, which increases the ROM cost.
+Where applications of the ROM to the diffusion equation have been introduced before \cite{sartori2014comparison, sartori2014reduced, tsujita2021fast}, this work focuses on treating the non-linearity induced by coupling with different physics.
+Previous work has used DEIM to approximate non-linear functions resulting from multiphysics coupling such as the temperature and the velocity field \cite{german2019application, german2022gen}.
+Here, the MDEIM is used to approximate the projection of the problem operator that otherwise must be computed at each non-linear iteration within each time step, which increases the ROM cost.
 By applying the method to the LRA benchmark, speed ups from 6 to 40 were achieved depending on the full-order model (FOM) spatial fidelity.
 The maximum relative error in the assemblies power was in the order of $1\times10^{-5}$\%.
 Moreover, the ROM was parameterized by POD-greedy sampling, and a case study was performed where the kinetic data, i.e, the precursor decay constants and delayed-neutron fraction were assumed to be the model parameters of interest.
@@ -137,15 +139,17 @@ The most commonly used one is a serial coupling of two or more separate codes in
 This procedure is commonly referred to as operator splitting or explicit coupling.
 One drawback of operator splitting is that time integration requires small steps to avoid stability issues, thus leading to high computational time. 
 Alternatively, tight coupling in time between the physics can be maintained by using an implicit scheme that solves a non-linear iteration in each time step, also increasing the computational time.
-A modern algorithm such as Jacobian free Newton-Krylov (JFNK) \cite{gaston2009parallel} can be used to perform this implicit coupling.
+An algorithm such as Jacobian free Newton-Krylov (JFNK) \cite{gaston2009parallel} can be used to perform this implicit coupling.
 Another popular approach is to use fixed-point iteration, with an implicit time scheme to iterate between difference physics within a time step until convergence is satisfied, which is computationally taxing.
 The aim of this work is to use a reduced-order model to overcome the high computational expense of these non-linear models.
 In particular, the ROM was developed using the POD-Galerkin projection.
 The method belongs to the projection-based family and can be described as a physics-driven method since it requires knowledge of the original governing equation as will be shown in Sec.\ref{sec:POD}.
 In a previous work \cite{elzohery2021exploring}, we applied the method to the time-dependent diffusion equation where there was no coupling with other models and hence the application was linear.
-In this study, the developed ROM was extended to treat the non-linearity induced by multi-physics modeling.
-To improve the computational efficiency of the developed ROM, a hyper-reduction technique known as the Discrete Empirical Interpolation Method (DEIM) was used in conjunction with the POD-Galerkin projection.
-The primary purpose of using the DEIM is to obtain an offline-online decomposition of the ROM to avoid repetitive projection of the problem operator at each iteration within the time step.
+In this study, the developed ROM was extended to treat the non-linearity induced by multi-physics modeling, using the matrix version of the  Discrete Empirical Interpolation Method (DEIM).
+To this point, we must emphasize that the method used here, i.e; POD Galerkin projection has been used in previous works to approximate the diffusion equation \cite{sartori2014comparison, sartori2014reduced} for other problems using different codes where it showed promising results.
+Moreover, DEIM has been used in conjunction with the POD-Galerkin projection to approximate non-linear fields such as the temperature and the velocity field \cite{german2019application, german2022gen}.  
+Here, we are presenting another variant of the DEIM algorithm, known as the matrix version of DEIM, i,e; MDEIM, in order to improve the computational efficiency of the developed ROM.
+The primary purpose of using the MDEIM is to obtain an offline-online decomposition of the ROM to avoid repetitive projection of the problem operator at each iteration within the time step, in cases that an affine decomposition of the operator is not readily obtainable.
 The offline stage occurs only once and comprises the expensive step of the ROM.
 On the other hand, the online stage involves solving a reduced number of equations at each time step with a computational cost independent of the FOM dimension and hence cheaper.
 The LRA benchmark was used as a demonstrative application where the diffusion equation is coupled with a simplified thermal feedback model.
@@ -370,7 +374,7 @@ The multi-group version of the equation is represented as
 \frac{1}{v_g} \frac{\partial\phi_g}{\partial t} &= 
 \nabla. D_g\nabla\phi_g - \Sigma_{tg}\phi_g + \sum_{g^\prime=1}^{G}{\Sigma_{sg^\prime g}}\phi_{g^\prime} \\
 &+ \chi_g(1-\beta)\sum_{g^\prime = 1}^{G}\nu\Sigma_{fg^\prime}\phi_{g^\prime}  
-+ \chi_g\sum_{i=1}^{P} \lambda_i C_i \, ,
++ \chi_g\sum_{i=1}^{I} \lambda_i C_i \, ,
 \end{split}
 \label{time_diff}
 \end{equation}
@@ -408,7 +412,7 @@ and $\mathbf{F}\in \mathbb{R}^{(n\times I)\times ((n\times I)}$ represents the p
 \subsection{Problem Description}
 
 The LRA benchmark was used as an illustrative application for non-linear problems.
-It employs two energy groups and two delayed precursor groups and represents a 2-D quarter-core, BWR model subject to a control-rod ejection with adiabatic heating \cite{anl}.
+It employs two energy groups and two delayed precursor groups and represents a 2-D quarter-core, BWR model subject to a control-rod ejection with adiabatic heating \cite{anl}. The two groups data are given in Table~\ref{tab:two group data}, where $\text{B}^2$ is the axial buckling for both energy groups as given in the benchmark specification.
 A schematic layout of the problem is shown in Fig.~\ref{fig:lra core}, where region numbers indicate different materials and region R is the ejected rod.
 %To produce time-dependent snapshots, the deterministic transport code Detran\footnote{https://github.com/robertsj/libdetran} was used to solve the time-dependent diffusion equations.
 \begin{figure}[h!]
@@ -499,11 +503,11 @@ The power local is computed as
 \begin{equation}
 P(x,t)=\kappa [\Sigma_{f1}(x,t)\phi_1(x,t)+\Sigma_{f2}(x,t)\phi_2(x,t)] \, ,
 \end{equation}
-where $\kappa = 3.204\times 10^{-11}~ \text{W/fission}$.
+where $\kappa = 3.204\times 10^{-11}~ \text{J/fission}$.
 The model was implemented in the deterministic transport code Detran~\cite{roberts2014advanced}.
 A mesh-centered, finite-difference discretization was used in space, while a first-order, backward-difference temporal discretization was used with a fixed 0.001 s step size.  
-The initial condition for the transient was computed by solving the steady-state equation, for which $k_{\text{eff}}$ was found to be 0.9975.
-Note that at each time step the fast absorption cross section is a function of the solution itself.
+The initial condition for the transient was computed by solving the eigenvalue problem, for which $k_{\text{eff}}$ was found to be 0.9975.
+Note that at each time step the fast absorption cross section is a function of the solution itself, in which case Eq.~\ref{eq:transient fom} becomes a non-linear one, since the operator $\mathbf{A}$ changes with the solution at each time step, i.e, $\mathbf{A}(\mathbf{y}(t))$. 
 The convergence criterion used to reduce the $\text{L}_2$ norm  of the relative flux error between two consecutive iterations to less than $1\times 10^{-6}$, or
 \begin{equation}
 \|\frac{\mathbf{\Phi}^{i+1} - \mathbf{\Phi}^{i}} {\mathbf{\Phi}^i}\| \le  1\times 10^{-6} \, ,
@@ -518,22 +522,6 @@ This reference solution is not necessarily numerically converged in either space
 	\caption{LRA core power}
 	\label{fig:lra fom power}
 \end{figure}
-
-%\begin{figure}[H]
-%	\centering
-%	\begin{subfigure}[b]{0.7\textwidth}
-%		\includegraphics[width=1.0\linewidth]{../figures/ss_fom_fast_flux_image.pdf}
-%		\caption{Steady state fast flux.}
-%		\label{fig:ss fast flux}
-%	\end{subfigure}
-%	\begin{subfigure}[b]{0.7\textwidth}
-%		\includegraphics[width=1.0\linewidth]{../figures/ss_fom_thermal_flux_image.pdf}
-%		\caption{Steady state thermal flux.}
-%		\label{fig:ss thermal flux}
-%	\end{subfigure}
-%	\caption{Steady state group flux $(\text{neutrons} ~\text{cm}^2/s)$}
-%	\label{fig:lra ss flux}
-%\end{figure}
 
 \begin{table}[H]
 	\begin{threeparttable}	
@@ -558,11 +546,13 @@ This reference solution is not necessarily numerically converged in either space
 			& 2   & 0.1592 &   0.01911    &   0.0    &  \\
 			\hline
 		\end{tabular}
+
 		\begin{tablenotes}
-			\item $v_1 = 3\times10^{7} ~\text{cm/s} $,  $v_2 = ~3\times10^{5} \text{cm/s}.$.
+			\item $v_1 = 3\times10^{7} ~\text{cm/s} $,  $v_2 = ~3\times10^{5} \text{cm/s}$, $\nu=2.34$, $B^2=1\times{10}^{-4}$.
 		\end{tablenotes}
 	\end{threeparttable}
 	\caption{Two group constants of the LRA benchmark.}
+	\label{tab:two group data}
 \end{table}
 
 
@@ -585,9 +575,9 @@ This reference solution is not necessarily numerically converged in either space
 \subsection{ROM Implementation}
 
 The POD-Galerkin projection procedures described in Sec.~\ref{sec:POD} were applied to the system in Eq.~\ref{eq:transient fom} to approximate the group flux and the core power of the LRA benchmark with increasing the spatial fidelity, i.e, spatial grids of $22\times 22$, $44\times44$, and $55 \times 55$ were used.\\
-POD basis set was generated for each group flux, 
+POD basis set was generated for each group flux, using snapshot of the FOM time dependent solution, 
 while one basis set was generated for both precursors groups, i.e, 
-$\mathbf{\Phi}_1(t) = \mathbf{U}_1\mathbf{a}_1(t)$, $\mathbf{\Phi}(t)_2 = \mathbf{U}_2\mathbf{a}_2(t)$ and $\mathbf{C}(t) = \mathbf{U}_c\mathbf{a}_c(t)$, where $\mathbf{U}_1$, $\mathbf{U}_2$  and $\mathbf{U}_c$ are the POD bases of the fast group, thermal group and precursor concentration respectively, and $\mathbf{a}_1$, $\mathbf{a}_2$ and $\mathbf{a}_c$ are their respective temporal coefficients. 
+$\mathbf{\Phi}_1(t) = \mathbf{U}_1\mathbf{a}_1(t)$, $\mathbf{\Phi}_2(t) = \mathbf{U}_2\mathbf{a}_2(t)$ and $\mathbf{C}(t) = \mathbf{U}_c\mathbf{a}_c(t)$, where $\mathbf{U}_1$, $\mathbf{U}_2$  and $\mathbf{U}_c$ are the POD bases of the fast group, thermal group and precursor concentration respectively, and $\mathbf{a}_1$, $\mathbf{a}_2$ and $\mathbf{a}_c$ are their respective temporal coefficients. 
 The resulting ROM can be represented as 
 \begin{equation}
 \frac{d\mathbf{\hat{y}}}{dt} = \mathbf{A}_r\mathbf{\hat{y}}\, , 
@@ -642,16 +632,12 @@ However, it was observed that the reduced model needed more iterations to conver
 \frac{\|\mathbf{a}^{i-1} - \mathbf{a}^{i}\|}{\|\mathbf{a}_i \|} \le 1\times 10^{-6}  \, .
 \end{equation}
 
-%Note that the fast absorption cross section needs to be updated at each time step using Eq.~\ref{eq:doppler} in which the core temperature distribution is required.
-%In order to avoid reconstructing the full order temperature, 
-%the DEIM was used to approximate the absorption cross section.
-%For this purpose, snapshots of which were collected in order to generate a POD subspace that is used to approximate its space and to find a set of interpolation indices as illustrated in Algorithm~\ref{alg:DEIM}.
-%DEIM of order $10$ was used and hence, the cross section was reconstructed at each time step at only 10 points in the spatial space.
 Since the reactivity insertion was simulated by changing the absorption cross section, the operator $\mathbf{A}$ in Eq.~\ref{eq:transient fom} exhibits time dependence.
 In particular, the submatrix $\mathbf{L}$ of $\mathbf{A}$ is the one that changes with time.
 Thus, to avoid performing the expensive projection at each time step, 
-The MDEIM was used to decompose the matrix $\mathbf{L}$.
-Shown in Fig.~\ref{fig:lra L singular values} are the singular values resulting from the SVD of the serialized operator snapshots. 
+The MDEIM was used to decompose the matrix $\mathbf{L}$, and Eq.~\eqref{eq:ROM} was solved for the flux and precursors coefficient.
+Using the flux coefficients, the temperature coefficients were computed with Eq.~\ref{eq:reduced temp} from which the cross section in Eq.~\ref{eq:doppler} was updated.
+Shown in Fig.~\ref{fig:lra L singular values} are the singular values resulting from the SVD of the serialized operator snapshots.
 A MDEIM of order $15$ was used since the singular-values decay by large magnitude around this value; however, higher orders can be chosen for better accuracy.
 
 \begin{figure}[H]
@@ -685,7 +671,7 @@ The ROMs were solved for the group flux from which the core power was computed.
 The absolute relative error in the predicted core powers are shown in Fig.~\ref{fig:deim power error}.
 
 \begin{figure}[H]
-	\includegraphics[width=1.0\linewidth]{../figures/_.pdf}
+	\includegraphics[width=1.0\linewidth]{../figures/LRA_power_deim_relative_error.pdf}
 	\caption{Relative error of the power predicted by MDEIM-ROM}
 	\label{fig:deim power error}
 \end{figure}
@@ -790,7 +776,7 @@ The resulting POD basis was stored and used for testing the ROM.
 Thus, 50 new parameter samples were generated, and the ROM was executed with the resultant greedy basis.
 Moreover, the FOM was run at these testing parameter points, and the error between both models was computed.
 The quantities of interest were the assembly power at the peak and the maximum core temperature, i.e., the end-of-transient temperature.
-Note that the time to peak is different from sample to sample.
+Note that the time to peak is different from sample to sample, with the relative difference between the FOM peak power at the parameter vary between 0.1 to 1\%.
 Shown in Fig.~ \ref{fig:peak power mean error}, the sample mean of the assembly power error, at the peak, where the mean core maximum temperature error is shown in Fig.~\ref{fig:T mean error}.
 
 \begin{figure}[H]
