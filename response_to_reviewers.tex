@@ -48,7 +48,7 @@ This statement concerns our revision of the ANUCENE-D-22-00268, entitled ``Model
   
   "Application of multiphysics model order reduction to doppler/neutronic feedback"
   P German, JC Ragusa, C Fiorina
-  EPJ Nuclear Sciences & Technologies 5 (ARTICLE), 17
+  EPJ Nuclear Sciences \& Technologies 5 (ARTICLE), 17
   
   or
   
@@ -64,19 +64,19 @@ This statement concerns our revision of the ANUCENE-D-22-00268, entitled ``Model
   The novelty of the paper is then restricted to the implementation of the model in a specific code, and to its application to a specific problem. I believe this may still make it worth publishing, but the authors are requested to rewrite abstract, introduction and conclusions in order to:
   - acknowledge the work of other authors on the subject
   - adapt their claims to the fact that the methodology has already been proposed and tested.
-  They should also change the title, as it gives the idea that this is a first-of-a-kind paper using a POD-Galerkin and DEIM for neutronics, while this is not the case. The title should focus on elements of actual novelty (implementation in a specific code and application to a benchmark).
+  They should also change the title, as it gives the idea that this is a first-of-a-kind paper using a POD-Galerkin and DEIM for neutronics, while this is not the case. The title should focus on elements of actual novelty (implementation in a specific code and application to a benchmark).}
 
-We agree with reviewer that the DEIM was used before and we have acknowledged their work in the introduction and cited their paper.
-However, it is important to clarify that in this work, we used a different variant of the DEIM algorithm, which it is matrix version.
-Moreover, where DEIM we used previously to approximate non-linear function such as the temperature or the flow filed, we have used MDEIM to approximate the problem operator in case an affine decomposition is not readily obtainable. And to the author knowledge the Matrix version of DEIM was not used before in the nuclear community.
+We agree with reviewer that ROM with DEIM was successfully used before and we have acknowledged this in the introduction section and cited these papers.
+However, it is important to clarify that in our work, we used a different variant of the DEIM algorithm, which is its matrix version.
+Moreover, where DEIM was used previously to approximate non-linear functions such as the temperature and the velocity filed, we have used MDEIM to approximate the problem operator in case an affine decomposition is not readily obtainable. To the author knowledge the matrix version of DEIM was not used before in the nuclear community.
 As the reviewer suggested, we have modified the title to reflect this goal
 \end{response}
 
 \begin{response}{I would not define JFNK as a modern method. I have found publications from the eighties on it, and I guess it may be older than that. I also would avoid passing the message that block-matrix coupling is faster than operator-splitting. Very often, this is not the case, as operator splitting allows a very well targeted preconditioning, and selective solution of non-converged fields
-   }
+}
 
+we agree with author. Our intention was that the algorithm is implemented in modern codes, but we have removed the word `modern' to avoid confusion.
   
-
 \end{response}
 
 \begin{response}{
@@ -88,7 +88,7 @@ We agree with the reviewer. The initial condition is computed by solving an eige
 
 \begin{response}{The authors mention "Note that at each time step the fast absorption cross section is a function of the solution itself". Is this an assumption, a statement, or a feature of the benchmark? Is this the only XS that is parametrized?.}
 		
-This a feature of the benchmark. The fast cross section is defined as a function of the temperature at each time step, and the temperature changes as a function of the neutron flux, i.e, the solution.
+This a feature of the benchmark. The fast cross section is defined as a function of the temperature at each time step, and the temperature changes as a function of the neutron flux, i.e, the solution. And yes, this the only cross section that is parametrized
 \end{response}
 
 \begin{response}
@@ -115,12 +115,11 @@ This a feature of the benchmark. The fast cross section is defined as a function
 \begin{response}
 {I find it very difficult to interpret the results of section 4.2.2. The authors compare the predictions of ROM and FOM, but what is the impact of the parameters on the FOM itself? Without this information, it is impossible to assess the goodness of the ROM approximation. The error made by the ROM model should be small with respect to the differences expected in the FOM when changing the selected parameters.}
 
-We mentioned in the paper that the time-to-peak differs from FOM sample to another, 
-because the value of beta is different between samples. 
+We mentioned in the paper that the time-to-peak differs from FOM sample to another.
 On the other hand, the time-to-peak of the ROM solution is exactly the same as in the FOM solution.
-That is why it was not convenient to compute point-by-point difference between the FOM samples, 
-but the computed the relative standard deviation of the FOM samples is 0.6 \%, which indicates a much bigger error compared to the ROM error.
-we elaborated on this more in the paper.
+That is why it was not convenient to compute point-by-point difference between the FOM solutions. 
+The difference between the FOM peak power at different parameters points varies between 0.1 to 1\%,  which indicates a significantly larger difference between the FOM solution peak powers compared to the ROM error.
+we have clarified this in the paper.
 ------------------------------------
 \end{response}
 
@@ -137,9 +136,9 @@ It is more accurate to say that the operator L is approximated (not calculated) 
 For clarity, at each time step, MDEIM is first applied to approximate the operator, and Eq~18 is solved for the flux coefficients.
 Theses flux coefficient are then used in Eq.~20 to update the temperature coefficients $a-T$.
 Using this computed temperature, the fast cross-section is updated using Eq.~15.
-But we agree with reviewer that Eq.~12, as presented, is linear, since was a general represention of the diffusion equation and this has been clarified in the paper.
-In particular, we clarified that in the problem studied here, coupling with TH model lead to A be a function of the solution, i.e, A(y(t)).
-Also, it is mentioned that vectorized form of the operator corresponds to the function f(y(t)) mentioned in section 2.2.
+But we agree with reviewer that Eq.~12, as presented, is linear, since was a general representation of the diffusion equation, and this has been clarified in the paper.
+In particular, we clarified that in the problem studied here, coupling with TH model leads to $\textbf{A}$ be a function of the solution, i.e, $\textbf{A}(\textbf{y}(t))$.
+Also, it is mentioned that vectorized form of the operator corresponds to the function f(y(t)) given in section 2.2.
 
 
 
@@ -159,7 +158,7 @@ Also, it is mentioned that vectorized form of the operator corresponds to the fu
 
 
 The doppler coefficient .....
-The axial buckling was accounted for as given on the benchmark documentation. We have commented on that in the paper and added it value in table 1 along with the value of $\nu$. Thanks for the catch.
+The axial buckling was accounted for as given on the benchmark documentation. We have commented on that in the paper and added its value in table~1 along with the value of $\nu$. Thanks for the catch.
 Regarding to the value of initial keff, it is sensitive to the spatial discretization, the numerical solver and the convergence criteria, and this might be the cause of this little bias that you observed.
 We agree with the reviewer that any inconsistency resulting from a change in the problem data from that in the original benchmark does not affect the presented results, as long the problem parameters are consistent in both the FOM and the ROM. 
 
@@ -175,6 +174,6 @@ We agree with the reviewer that any inconsistency resulting from a change in the
 % page 18, line 2 : $fai(t)2 --> fai_2(t)}$
 
 \end{response}
-These have been corrected. Thanks for the catch.
+These have been corrected. Thanks catching these errors.
 
 \end{document}
